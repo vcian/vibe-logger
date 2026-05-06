@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>logger-ui</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="./dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+</head>
+<body class="dashboard page">
+  <div id="loadingOverlay" class="loading-overlay hidden"><div class="spinner"></div></div>
+  <header class="header">
+    <div class="brand">
+      <h1>logger-ui</h1>
+      <p>Real-time logs and operational insights</p>
+    </div>
+    <div class="user-area">
+      <span id="usernameLabel">Logged in</span>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <section class="metrics stats-row">
+    <article class="card stat-card total"><h2>Total Logs</h2><p id="metricTotal">0</p></article>
+    <article class="card stat-card errors"><h2>Errors</h2><p id="metricError">0</p></article>
+    <article class="card stat-card warnings"><h2>Warnings</h2><p id="metricWarn">0</p></article>
+    <article class="card stat-card info"><h2>Info</h2><p id="metricInfo">0</p></article>
+  </section>
+
+  <section class="panel chart-section">
+    <h2>Log Volume by Hour</h2>
+    <div class="chart-wrap chart-container">
+      <canvas id="volumeChart"></canvas>
+    </div>
+  </section>
+
+  <section class="panel insights-panel">
+    <div class="insights-header">
+      <h2>Log Quality Insights</h2>
+      <p>Spot noisy sources, recurring errors, and unusual spikes.</p>
+    </div>
+    <div class="insights-grid">
+      <article class="insight-card">
+        <h3>Error Rate</h3>
+        <p id="metricErrorRate" class="insight-kpi">0%</p>
+        <p id="metricWarnRate" class="insight-meta">Warn rate: 0%</p>
+      </article>
+      <article class="insight-card">
+        <h3>Top Noisy Sources</h3>
+        <ul id="topSourcesList" class="insight-list"><li class="muted">No data yet</li></ul>
+      </article>
+      <article class="insight-card">
+        <h3>Recurring Error Messages</h3>
+        <ul id="topErrorsList" class="insight-list"><li class="muted">No data yet</li></ul>
+      </article>
+      <article class="insight-card">
+        <h3>Spike Hours</h3>
+        <div id="spikeHoursList" class="spike-list"><span class="muted">No spikes detected</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="toolbar filter-bar">
+    <input id="searchInput" type="text" placeholder="Search message or source">
+    <select id="levelSelect">
+      <option value="">All Levels</option>
+      <option value="info">Info</option>
+      <option value="warn">Warn</option>
+      <option value="error">Error</option>
+      <option value="debug">Debug</option>
+    </select>
+    <select id="sourceSelect"><option value="">All Sources</option></select>
+    <div class="date-filter" id="dateFilter">
+      <div class="date-presets" role="group" aria-label="Quick date ranges">
+        <button type="button" class="date-preset-btn" data-range="1h">Last 1h</button>
+        <button type="button" class="date-preset-btn" data-range="24h">Last 24h</button>
+        <button type="button" class="date-preset-btn" data-range="7d">Last 7d</button>
+        <button type="button" class="date-preset-btn" data-range="custom">Custom</button>
+      </div>
+      <div class="date-custom-row">
+        <label class="date-label" for="startDate">From</label>
+        <input id="startDate" type="datetime-local" placeholder="yyyy-mm-dd hh:mm">
+        <label class="date-label" for="endDate">To</label>
+        <input id="endDate" type="datetime-local" placeholder="yyyy-mm-dd hh:mm">
+      </div>
+      <div class="date-actions">
+        <button type="button" id="applyDateBtn">Apply</button>
+        <button type="button" id="cancelDateBtn">Cancel</button>
+        <button type="button" id="clearDateBtn">Clear</button>
+      </div>
+      <p id="dateValidationMsg" class="date-validation hidden" aria-live="polite"></p>
+    </div>
+    <button id="clearFiltersBtn">Clear Filters</button>
+    <button id="exportCsvBtn">Export CSV</button>
+  </section>
+
+  <section id="chips" class="chips filter-chips"></section>
+
+  <section class="table-wrap table-wrapper">
+    <table>
+      <thead>
+        <tr><th>Timestamp</th><th>Level</th><th>Source</th><th>Message</th></tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="emptyState" class="empty-state hidden" aria-live="polite">No logs match your filters.</div>
+  </section>
+
+  <div class="pagination-wrapper">
+    <div class="pagination-left">
+      <span class="pagination-label">Rows per page</span>
+      <select class="per-page-select" id="perPageSelect">
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+
+    <div class="pagination-center">
+      <button class="page-btn" id="prevBtn" onclick="changePage('prev')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+        Previous
+      </button>
+
+      <div class="page-numbers" id="pageNumbers"></div>
+
+      <button class="page-btn" id="nextBtn" onclick="changePage('next')">
+        Next
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M6 4L10 8L6 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="pagination-right">
+      <span class="pagination-info" id="paginationInfo">Showing 1-25 of 100 entries</span>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script src="./dashboard.js"></script>
+</body>
+</html>
