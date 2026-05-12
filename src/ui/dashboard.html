@@ -4,6 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>express-loglens-ui</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css"
@@ -25,6 +31,7 @@
       </div>
     </header>
 
+    <main class="dashboard-main">
     <section class="metrics stats-row">
       <article class="card stat-card total">
         <h2>Total Logs</h2>
@@ -68,55 +75,99 @@
             <li class="muted">No data yet</li>
           </ul>
         </article>
-        <article class="insight-card">
+        <article class="insight-card insight-card--recurring">
           <h3>Recurring Error Messages</h3>
-          <ul id="topErrorsList" class="insight-list">
+          <ul id="topErrorsList" class="insight-list insight-scroll">
             <li class="muted">No data yet</li>
           </ul>
         </article>
-        <article class="insight-card">
+        <article class="insight-card insight-card--spikes">
           <h3>Spike Hours</h3>
-          <div id="spikeHoursList" class="spike-list">
+          <div id="spikeHoursList" class="spike-list insight-scroll">
             <span class="muted">No spikes detected</span>
           </div>
         </article>
       </div>
     </section>
 
-    <section class="toolbar filter-bar">
-      <input id="searchInput" type="text" placeholder="Search message or source" />
-      <select id="levelSelect">
-        <option value="">All Levels</option>
-        <option value="info">Info</option>
-        <option value="warn">Warn</option>
-        <option value="error">Error</option>
-        <option value="debug">Debug</option>
-      </select>
-      <select id="sourceSelect">
-        <option value="">All Sources</option>
-      </select>
-      <div class="date-filter" id="dateFilter">
-        <div class="date-presets" role="group" aria-label="Quick date ranges">
-          <button type="button" class="date-preset-btn" data-range="1h">Last 1h</button>
-          <button type="button" class="date-preset-btn" data-range="24h">Last 24h</button>
-          <button type="button" class="date-preset-btn" data-range="7d">Last 7d</button>
-          <button type="button" class="date-preset-btn" data-range="custom">Custom</button>
+    <section class="toolbar filter-bar" aria-label="Log filters">
+      <div class="toolbar-row toolbar-row--search">
+        <div class="search-wrap">
+          <input
+            id="searchInput"
+            class="toolbar-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Search by message or source..."
+          />
         </div>
-        <div class="date-custom-row">
-          <label class="date-label" for="startDate">From</label>
-          <input id="startDate" type="datetime-local" placeholder="yyyy-mm-dd hh:mm" />
-          <label class="date-label" for="endDate">To</label>
-          <input id="endDate" type="datetime-local" placeholder="yyyy-mm-dd hh:mm" />
+        <div class="toolbar-trailing">
+          <button type="button" id="clearFiltersBtn" class="btn-secondary">
+            <span class="btn-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </span>
+            Clear filters
+          </button>
+          <button type="button" id="exportCsvBtn" class="btn-primary">
+            <span class="btn-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            Export CSV
+          </button>
         </div>
-        <div class="date-actions">
-          <button type="button" id="applyDateBtn">Apply</button>
-          <button type="button" id="cancelDateBtn">Cancel</button>
-          <button type="button" id="clearDateBtn">Clear</button>
-        </div>
-        <p id="dateValidationMsg" class="date-validation hidden" aria-live="polite"></p>
       </div>
-      <button id="clearFiltersBtn">Clear Filters</button>
-      <button id="exportCsvBtn">Export CSV</button>
+
+      <div class="toolbar-row toolbar-row--filters">
+        <label class="filter-field">
+          <span class="filter-label">Level</span>
+          <select id="levelSelect" class="toolbar-select" aria-label="Log level">
+            <option value="">All Levels</option>
+            <option value="info">Info</option>
+            <option value="warn">Warn</option>
+            <option value="error">Error</option>
+            <option value="debug">Debug</option>
+          </select>
+        </label>
+        <label class="filter-field">
+          <span class="filter-label">Source</span>
+          <select id="sourceSelect" class="toolbar-select" aria-label="Source">
+            <option value="">All Sources</option>
+          </select>
+        </label>
+        <div class="filter-field filter-field--range">
+          <span class="filter-label">Time range</span>
+          <div class="date-filter" id="dateFilter">
+            <div class="date-presets" role="group" aria-label="Quick date ranges">
+              <button type="button" class="date-preset-btn" data-range="1h">1h</button>
+              <button type="button" class="date-preset-btn" data-range="24h">24h</button>
+              <button type="button" class="date-preset-btn" data-range="7d">7d</button>
+              <button type="button" class="date-preset-btn" data-range="custom">Custom</button>
+            </div>
+            <div class="date-custom-panel hidden" id="dateCustomPanel">
+              <div class="date-custom-row">
+                <label class="date-field">
+                  <span class="date-field-label">From</span>
+                  <input id="startDate" type="datetime-local" placeholder="yyyy-mm-dd hh:mm" />
+                </label>
+                <label class="date-field">
+                  <span class="date-field-label">To</span>
+                  <input id="endDate" type="datetime-local" placeholder="yyyy-mm-dd hh:mm" />
+                </label>
+              </div>
+              <div class="date-actions">
+                <button type="button" id="applyDateBtn" class="btn-date-apply">Apply</button>
+                <button type="button" id="cancelDateBtn" class="btn-link">Cancel</button>
+                <button type="button" id="clearDateBtn" class="btn-link">Clear</button>
+              </div>
+              <p id="dateValidationMsg" class="date-validation hidden" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section id="chips" class="chips filter-chips"></section>
@@ -184,6 +235,7 @@
     </div>
 
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    </main>
     <script src="./dashboard.js"></script>
   </body>
 </html>

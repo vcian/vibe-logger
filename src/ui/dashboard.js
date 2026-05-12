@@ -365,11 +365,11 @@
     } else {
       els.topErrors.innerHTML = topErrors
         .map(item => {
-          const compactMessage = previewText(item.message, 110);
+          const compactMessage = previewText(item.message, 320);
           const sourceHint = item.sources?.length
             ? ` (${item.sources.length} source${item.sources.length > 1 ? 's' : ''})`
             : '';
-          return `<li title="${escapeHtml(item.message)}"><span class="insight-main">${escapeHtml(compactMessage)}</span><span class="insight-side">${item.count}x${sourceHint}</span></li>`;
+          return `<li class="insight-row insight-row--error" title="${escapeHtml(item.message)}"><span class="insight-main">${escapeHtml(compactMessage)}</span><span class="insight-side">${item.count}x${sourceHint}</span></li>`;
         })
         .join('');
     }
@@ -381,7 +381,11 @@
       els.spikeHours.innerHTML = spikes
         .map(spike => {
           const label = new Date(spike.hour).toLocaleString();
-          return `<span class="spike-chip">${label} (${spike.errorCount} errors)</span>`;
+          const count = Number(spike.errorCount ?? 0);
+          return `<div class="spike-chip" role="listitem">
+            <span class="spike-chip-time">${escapeHtml(label)}</span>
+            <span class="spike-chip-badge">${count} error${count === 1 ? '' : 's'}</span>
+          </div>`;
         })
         .join('');
     }
@@ -714,6 +718,10 @@
     els.datePresetButtons.forEach(button => {
       button.classList.toggle('active', button.dataset.range === preset);
     });
+    const customPanel = document.getElementById('dateCustomPanel');
+    if (customPanel) {
+      customPanel.classList.toggle('hidden', preset !== 'custom');
+    }
   }
 
   function syncDraftInputsFromState() {
