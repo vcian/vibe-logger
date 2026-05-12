@@ -1,0 +1,16 @@
+src/
+tests/
+.env
+.env.example
+.github/
+.eslintrc.json
+.prettierrc
+.prettierignore
+tsconfig.json
+rollup.config.js
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+*.test.ts
+coverage/
+*.map

@@ -50,4 +50,30 @@ describe("log routes", () => {
     expect(disposition).toContain("attachment; filename=\"logs-");
     expect(text.split("\n")[0]).toBe("id,timestamp,level,source,message,meta");
   });
+
+  it("filters by level query param", async () => {
+    const store = createInMemoryLogStore(100);
+    store.append({ timestamp: "2026-01-01T00:00:00.000Z", level: "warn", message: "b", source: "auth" });
+    store.append({ timestamp: "2026-01-01T01:00:00.000Z", level: "info", message: "a", source: "api" });
+    const app = express();
+    app.use("/logs", createLogRoutes(store));
+    const baseUrl = await startApp(app);
+    const response = await fetch(`${baseUrl}/logs?level=warn`);
+    const body = await response.json();
+    expect(body.total).toBe(1);
+  });
+
+  it("returns stats shape", async () => {
+    const store = createInMemoryLogStore(100);
+    store.append({ timestamp: "2026-01-01T00:00:00.000Z", level: "warn", message: "b", source: "auth" });
+    const app = express();
+    app.use("/logs", createLogRoutes(store));
+    const baseUrl = await startApp(app);
+    const response = await fetch(`${baseUrl}/logs/stats`);
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.data).toHaveProperty("total");
+    expect(body.data).toHaveProperty("byLevel");
+    expect(body.data).toHaveProperty("byHour");
+  });
 });

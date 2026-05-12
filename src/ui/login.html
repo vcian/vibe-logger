@@ -1,63 +1,63 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>logger-ui login</title>
-  <link rel="stylesheet" href="./login.css">
-</head>
-<body class="login-page login-body">
-  <main class="login-wrapper">
-    <form id="loginForm" class="login-card">
-      <h1 class="login-title">logger-ui</h1>
-      <p class="subtitle login-subtitle">Sign in to access your log dashboard</p>
-      <label>Username<input id="username" name="username" required></label>
-      <label>Password<input id="password" name="password" type="password" required></label>
-      <button id="submitBtn" type="submit">Sign in</button>
-      <p id="errorMessage" class="error" role="alert" aria-live="polite"></p>
-    </form>
-  </main>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>express-loglens-ui login</title>
+    <link rel="stylesheet" href="./login.css" />
+  </head>
+  <body class="login-page login-body">
+    <main class="login-wrapper">
+      <form id="loginForm" class="login-card">
+        <h1 class="login-title">express-loglens-ui</h1>
+        <p class="subtitle login-subtitle">Sign in to access your log dashboard</p>
+        <label>Username<input id="username" name="username" required /></label>
+        <label>Password<input id="password" name="password" type="password" required /></label>
+        <button id="submitBtn" type="submit">Sign in</button>
+        <p id="errorMessage" class="error" role="alert" aria-live="polite"></p>
+      </form>
+    </main>
 
-  <script>
-    const form = document.getElementById("loginForm");
-    const errorEl = document.getElementById("errorMessage");
-    const submitBtn = document.getElementById("submitBtn");
+    <script>
+      const form = document.getElementById('loginForm');
+      const errorEl = document.getElementById('errorMessage');
+      const submitBtn = document.getElementById('submitBtn');
 
-    function getSafeRedirect() {
-      const params = new URLSearchParams(window.location.search);
-      const target = params.get("redirect") || "./";
-      if (target.startsWith("/") || target.startsWith("./")) {
-        return target;
-      }
-      return "./";
-    }
-
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      errorEl.textContent = "";
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Signing in...";
-      try {
-        const response = await fetch("./auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-        if (response.ok) {
-          window.location.href = getSafeRedirect();
-          return;
+      function getSafeRedirect() {
+        const params = new URLSearchParams(window.location.search);
+        const target = params.get('redirect') || './';
+        if (target.startsWith('/') || target.startsWith('./')) {
+          return target;
         }
-        const data = await response.json().catch(() => ({ message: "Login failed" }));
-        errorEl.textContent = data.message || "Login failed";
-      } catch (_error) {
-        errorEl.textContent = "Unable to reach server. Please try again.";
-      } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Sign in";
+        return './';
       }
-    });
-  </script>
-</body>
+
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        errorEl.textContent = '';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in...';
+        try {
+          const response = await fetch('./auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          if (response.ok) {
+            window.location.href = getSafeRedirect();
+            return;
+          }
+          const data = await response.json().catch(() => ({ message: 'Login failed' }));
+          errorEl.textContent = data.message || 'Login failed';
+        } catch (_error) {
+          errorEl.textContent = 'Unable to reach server. Please try again.';
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign in';
+        }
+      });
+    </script>
+  </body>
 </html>

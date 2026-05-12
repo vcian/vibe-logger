@@ -1,10 +1,27 @@
 # Changelog
 
-All notable changes to this package are documented in this file.
+All notable changes to this project will be documented in this file.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+This project follows [Semantic Versioning](https://semver.org/).
 
-## 1.0.1 - 2026-04-16
+## [Unreleased]
 
-- Switched package name to `express-loglens-ui` to avoid collisions with existing npm packages.
-- Added `prepublishOnly` checks (`build` + `test`) to prevent broken publishes.
-- Expanded README with an explicit API reference for `createLoggerUI` and returned methods.
-- Included `CHANGELOG.md` in published package files.
+## [1.0.0] - 2026-05-06
+
+### Added
+- Initial release of express-loglens-ui
+- Real-time log viewer with search, filter, and date range filtering
+- Time-series bar chart (Chart.js) showing log volume by hour
+- CSV export of filtered log entries
+- .env-based authentication with bcrypt password hashing
+- JWT session management with HTTP-only cookies
+- Multi-user support with admin and viewer roles
+- Rate limiting on login endpoint (brute-force protection)
+- Express middleware factory pattern — drop-in for any Express app
+- TypeScript support with full type definitions
+- ESM and CJS dual package output
+- CLI helper: npx express-loglens-ui hash-password
+- Console interception mode
+- Light mode UI with responsive design
+- Pagination with configurable rows per page
+- Log Quality Insights panel with error rate, noisy sources, spike hours

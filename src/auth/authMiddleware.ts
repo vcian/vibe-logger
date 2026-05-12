@@ -1,5 +1,5 @@
-import { NextFunction, Request, Response } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import { NextFunction, Request, Response } from 'express';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 export interface AuthUser {
   username: string;
@@ -16,23 +16,27 @@ export interface AuthenticatedRequest extends Request {
 }
 
 function isApiRequest(req: Request): boolean {
-  return req.path.startsWith("/logs") || req.originalUrl.includes("/logs/");
+  return req.path.startsWith('/logs') || req.originalUrl.includes('/logs/');
 }
 
 function buildLoginPath(req: Request): string {
-  return req.baseUrl ? `${req.baseUrl}/login` : "/login";
+  return req.baseUrl ? `${req.baseUrl}/login` : '/login';
 }
 
 function rejectUnauthorized(req: Request, res: Response): void {
   if (isApiRequest(req)) {
-    res.status(401).json({ ok: false, message: "Unauthorized" });
+    res.status(401).json({ ok: false, message: 'Unauthorized' });
     return;
   }
   res.redirect(buildLoginPath(req));
 }
 
 export function createAuthMiddleware(config: AuthConfig) {
-  return function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  return function authMiddleware(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): void {
     if (!config.enabled) {
       next();
       return;
@@ -47,8 +51,8 @@ export function createAuthMiddleware(config: AuthConfig) {
     try {
       const payload: JwtPayload = jwt.verify(token, config.jwtSecret) as JwtPayload;
       req.user = {
-        username: String(payload.username ?? ""),
-        role: String(payload.role ?? "viewer")
+        username: String(payload.username ?? ''),
+        role: String(payload.role ?? 'viewer'),
       };
       next();
     } catch (_error) {

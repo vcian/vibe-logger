@@ -1,72 +1,528 @@
 # express-loglens-ui
 
-Drop-in log viewer UI for Node.js/Express with search, filters, chart, CSV export, and optional auth.
+> A drop-in log viewer UI for Node.js (Express and NestJS) — search, filter, date range, time-series chart, CSV export, auth, and pluggable memory/file storage.
 
-## Installation
+![npm version](https://img.shields.io/npm/v/express-loglens-ui)
+![license](https://img.shields.io/npm/l/express-loglens-ui)
+![node](https://img.shields.io/node/v/express-loglens-ui)
+![downloads](https://img.shields.io/npm/dm/express-loglens-ui)
+
+---
+
+## Table of Contents
+
+1. [Overview](#1-overview)
+2. [Installation](#2-installation)
+3. [Quick Start — Express](#3-quick-start--express)
+4. [Quick Start — NestJS](#4-quick-start--nestjs)
+5. [Storage Modes](#5-storage-modes)
+   - [5.1 Memory mode](#51-memory-mode)
+   - [5.2 File mode — single file](#52-file-mode--single-file)
+   - [5.3 File mode — daily rotate (glob)](#53-file-mode--daily-rotate-glob)
+   - [5.4 Custom store](#54-custom-store)
+6. [Configuration Reference](#6-configuration-reference)
+7. [Environment Variables](#7-environment-variables)
+8. [Authentication](#8-authentication)
+9. [Public API](#9-public-api)
+10. [REST Endpoints](#10-rest-endpoints)
+11. [Dashboard Walkthrough](#11-dashboard-walkthrough)
+12. [Writing Logs (Best Practices)](#12-writing-logs-best-practices)
+13. [CSV Export](#13-csv-export)
+14. [Security](#14-security)
+15. [Troubleshooting](#15-troubleshooting)
+16. [Contributing / Changelog / License](#16-contributing--changelog--license)
+
+---
+
+## 1. Overview
+
+`express-loglens-ui` mounts a small Express router that serves a self-contained log dashboard plus a JSON API. It works in two distinct modes:
+
+| Mode | Source of logs | Use when |
+|---|---|---|
+| **Memory** | Logs you write via `logger.info/warn/error/debug` (and optionally `console.*`) | You want a live, in-process viewer with zero infrastructure. |
+| **File** | A Winston-style JSON log file (or many files via glob) | You already write JSON logs to disk and want to browse them. |
+
+### Features
+
+- Time-series volume chart by level (Chart.js), clickable to drill into an hour.
+- Search, level filter, source filter, date range (presets + custom), removable filter chips.
+- Expandable rows for multi-line messages and structured metadata.
+- Quality insights: error/warn rate, top noisy sources, recurring errors, spike hours.
+- CSV export of the currently filtered set.
+- `.env`-driven auth (bcrypt + JWT cookie), brute-force lockout, multi-user roles.
+- Responsive UI for desktop / laptop / tablet.
+- TypeScript types shipped, zero hard framework dependency beyond Express.
+
+---
+
+## 2. Installation
 
 ```bash
 npm install express-loglens-ui
 ```
 
-## Environment Setup
+Requirements:
 
-1. Copy `.env.example` into your app as `.env`.
-2. Generate a password hash:
-   ```bash
-   npx express-loglens-ui hash-password "your-password"
-   ```
-   If `npx` does not resolve the binary in your environment, run:
-   ```bash
-   node ./node_modules/express-loglens-ui/dist/cli.js "your-password"
-   ```
-3. Put the hash into `LOG_PASSWORD_HASH`.
+- Node.js `>=16`
+- `express >=4.18` (peer dependency)
+- For NestJS users: the Express platform adapter (default in `@nestjs/platform-express`).
 
-## Usage
+---
+
+## 3. Quick Start — Express
 
 ```ts
-import express from "express";
-import { createLoggerUI } from "express-loglens-ui";
+import 'dotenv/config';
+import express from 'express';
+import { createLoggerUI } from 'express-loglens-ui';
 
 const app = express();
 
 const logger = createLoggerUI({
-  path: "/logs",
+  path: '/logs',
+  source: 'app',
+  storageMode: 'memory',
   interceptConsole: true,
-  source: "my-app",
-  storageMode: "file",
-  filePath: "logs/application.log",
-  fileLiveTail: true
 });
 
 app.use(logger.middleware());
 
-logger.info("Server started", { port: 3000 });
-logger.warn("High memory", { mb: 512 });
-logger.error("DB failed", { code: "DB_DOWN" });
-logger.debug("Cache miss", { key: "user:42" });
+logger.info('Server started', { port: 3000 });
+app.listen(3000, () => logger.info('Listening on http://localhost:3000/logs'));
 ```
 
-## Writing Logs
+Open `http://localhost:3000/logs` and sign in with the credentials configured in your `.env` file (see [§8](#8-authentication)).
 
-The viewer shows only the **first line** of each message in the table and tucks the rest into an expandable detail panel. Structuring your logs around this pattern keeps the table scannable while preserving full context for debugging.
+---
 
-### Recommended shape
+## 4. Quick Start — NestJS
 
-Use a short, scannable first line as the summary. Push verbose context (stack traces, payloads) into subsequent lines of the message or, preferably, into the structured `meta` object.
+`express-loglens-ui` is just an Express router, so it works inside any NestJS app that uses the default Express adapter (`@nestjs/platform-express`).
+
+### 4.1 Bootstrap-time mount (simplest)
+
+Mount the middleware directly on the underlying Express instance in `main.ts`:
 
 ```ts
-logger.info("Request complete", { method: "GET", path: "/users", status: 200, durationMs: 42 });
-logger.warn("Slow query detected", { sqlHash: "ab12", durationMs: 1800, rows: 3200 });
-logger.error("Failed to charge customer", { customerId: "cus_123", provider: "stripe", code: "card_declined" });
+import 'dotenv/config';
+import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { createLoggerUI } from 'express-loglens-ui';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  const logger = createLoggerUI({
+    path: '/logs',
+    source: 'nest-app',
+    storageMode: 'file',
+    filePath: 'logs/app.log',
+  });
+
+  app.use(logger.middleware());
+  (global as any).logger = logger;
+
+  await app.listen(3000);
+}
+bootstrap();
 ```
 
-### Logging errors with stack traces
+### 4.2 As an injectable Nest provider (recommended)
 
-Put the exception's one-line summary first, followed by the full stack trace on subsequent lines. The viewer will:
+Wrap the logger so any service can inject and use it.
 
-- Show only the first line in the table row, with a `▸` caret indicating more content is available.
-- Reveal the complete stack trace inside a scrollable **Full message** block when the row is expanded.
-- Render the `meta` object as a pretty-printed **Metadata** block below the trace.
+```ts
+// logger.module.ts
+import { Module, Global } from '@nestjs/common';
+import { createLoggerUI, LoggerUI } from 'express-loglens-ui';
+
+export const LOGGER = Symbol('LOGGER');
+
+@Global()
+@Module({
+  providers: [
+    {
+      provide: LOGGER,
+      useFactory: (): LoggerUI =>
+        createLoggerUI({
+          path: '/logs',
+          source: 'nest',
+          storageMode: (process.env.LOG_STORAGE_MODE as 'memory' | 'file') ?? 'memory',
+        }),
+    },
+  ],
+  exports: [LOGGER],
+})
+export class LoggerModule {}
+```
+
+```ts
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { AppModule } from './app.module';
+import { LOGGER } from './logger.module';
+import type { LoggerUI } from 'express-loglens-ui';
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const logger = app.get<LoggerUI>(LOGGER);
+  app.use(logger.middleware());
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+```ts
+// any.service.ts
+import { Inject, Injectable } from '@nestjs/common';
+import type { LoggerUI } from 'express-loglens-ui';
+import { LOGGER } from './logger.module';
+
+@Injectable()
+export class PaymentsService {
+  constructor(@Inject(LOGGER) private readonly logger: LoggerUI) {}
+
+  charge(orderId: string) {
+    this.logger.info('Charge started', { orderId });
+  }
+}
+```
+
+### 4.3 Global Nest exception filter
+
+Forward all unhandled exceptions into the viewer:
+
+```ts
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
+import type { LoggerUI } from 'express-loglens-ui';
+
+@Catch()
+export class LogLensFilter implements ExceptionFilter {
+  constructor(private readonly logger: LoggerUI) {}
+
+  catch(exception: any, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const req = ctx.getRequest();
+    const status = exception instanceof HttpException ? exception.getStatus() : 500;
+
+    this.logger.error(
+      `${exception?.name ?? 'Error'}: ${exception?.message ?? 'Unknown'}\n${exception?.stack ?? ''}`,
+      { method: req.method, url: req.url, statusCode: status },
+    );
+
+    throw exception;
+  }
+}
+```
+
+> **Fastify users:** This package targets the Express adapter. To use it under `@nestjs/platform-fastify`, either expose an Express bridge for the `/logs` route or migrate that route to Express middleware.
+
+---
+
+## 5. Storage Modes
+
+You pick the mode once at bootstrap. The dashboard, API, filters, chart, and CSV export are identical across modes — only the data source changes.
+
+### 5.1 Memory mode
+
+In-process ring buffer capped by `maxEntries`. The oldest entries are evicted when the cap is reached.
+
+```ts
+const logger = createLoggerUI({
+  storageMode: 'memory',
+  maxEntries: 10_000,
+  interceptConsole: true,
+});
+```
+
+| Characteristic | Behaviour |
+|---|---|
+| Persistence | None — logs are lost on process restart. |
+| Ingestion | `logger.info/warn/error/debug(...)` and (optionally) `console.*` interception. |
+| Cap | `maxEntries` (default `10000` or `LOG_MAX_ENTRIES`). |
+| Multi-process | Each process has its own buffer. Use file mode (or a shared store) for clusters. |
+| Best for | Local dev, single-process apps, demos, integration tests. |
+
+Memory mode is the default and requires no config beyond auth.
+
+### 5.2 File mode — single file
+
+Reads a Winston-style JSON log file (one JSON object per line). The viewer parses the file on demand and re-parses it when the file is modified (if live tail is on).
+
+```ts
+const logger = createLoggerUI({
+  storageMode: 'file',
+  filePath: 'logs/app.log',
+  fileLiveTail: true,
+  maxEntries: 50_000,
+});
+```
+
+**Expected line format**
+
+```json
+{"timestamp":"2026-05-12T07:00:00.000Z","level":"info","message":"Request complete","source":"api","meta":{"status":200,"durationMs":42}}
+```
+
+Rules:
+
+- Supported keys: `timestamp`, `level`, `message`, `source`, `meta`.
+- Any extra keys are folded into `meta`.
+- Malformed lines are skipped (the rest still load).
+- Accepted timestamps: ISO strings, Winston `YYYY-MM-DD HH:mm:ss`, epoch seconds or milliseconds (number or string).
+- If a timestamp can't be parsed, the entry is still ingested with “now” and tagged `meta._timestampParseFailed=true`.
+
+**Live tail**
+
+With `fileLiveTail: true` (default), the file is re-read whenever its mtime changes — no socket, no polling daemon. Set to `false` if you want a static snapshot.
+
+### 5.3 File mode — daily rotate (glob)
+
+For setups where each day is a separate file (`logs/2026-05-11.log`, `logs/2026-05-12.log`, …):
+
+```ts
+const logger = createLoggerUI({ storageMode: 'file' });
+```
+
+```env
+LOG_STORAGE_MODE=file
+LOG_FILE_GLOB=logs/*.log
+LOG_FILE_DAYS=30
+LOG_FILE_LIVE_TAIL=true
+```
+
+Rules:
+
+- Filenames must contain a `YYYY-MM-DD` date — that's how the day window is computed.
+- Only files within the last `LOG_FILE_DAYS` days are loaded.
+- `LOG_FILE_GLOB` takes precedence over `LOG_FILE_PATH` (unless you pass `filePath` explicitly to `createLoggerUI`).
+- The combined entry count is capped by `LOG_MAX_ENTRIES` (newest kept).
+
+### 5.4 Custom store
+
+Inject your own implementation of the `LogStore` interface (e.g. Redis, SQLite, S3-backed):
+
+```ts
+import { createLoggerUI, LogStore } from 'express-loglens-ui';
+
+const myStore: LogStore = {
+  append(entry) { /* ... */ return { ...entry, id: 'uuid' } as any; },
+  query(opts)   { /* ... */ return { data: [], total: 0 }; },
+  stats()       { /* ... */ return /* StatsResult */ as any; },
+  clear()       { /* ... */ },
+  getSources()  { return []; },
+};
+
+const logger = createLoggerUI({ store: myStore });
+```
+
+When `store` is provided, `storageMode` / `filePath` / `maxEntries` are ignored.
+
+---
+
+## 6. Configuration Reference
+
+All options accepted by `createLoggerUI(options)`:
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `path` | `string` | `"/logs"` (or `LOG_VIEWER_PATH`) | Mount path for the UI and API. |
+| `source` | `string` | `"app"` | Default `source` label for `logger.info/warn/error/debug`. |
+| `interceptConsole` | `boolean` | `false` | Capture `console.log/info/warn/error/debug` into the store. |
+| `storageMode` | `"memory" \| "file"` | `"memory"` (or `LOG_STORAGE_MODE`) | Storage backend. |
+| `maxEntries` | `number` | `10000` (or `LOG_MAX_ENTRIES`) | Cap for memory/file stores (oldest entries evicted). |
+| `filePath` | `string` | `logs/app.log` (or `LOG_FILE_PATH`) | Single-file path when `storageMode: 'file'`. |
+| `fileLiveTail` | `boolean` | `true` (or `LOG_FILE_LIVE_TAIL`) | Reload file(s) when modified. |
+| `store` | `LogStore` | `undefined` | Inject a custom store (overrides all storage options). |
+
+Resolution order for each setting: **explicit option → env var → built-in default**.
+
+---
+
+## 7. Environment Variables
+
+All vars are read from `process.env` (load via `dotenv` or your platform).
+
+### Authentication
+
+| Key | Default | Description |
+|---|---|---|
+| `LOG_AUTH_ENABLED` | `true` | Master switch. When `true`, all UI and API routes require login. |
+| `LOG_USERNAME` | `admin` | Single-user username. |
+| `LOG_PASSWORD_HASH` | *required when auth on* | Bcrypt hash of the password (use the CLI below). |
+| `LOG_JWT_SECRET` | *required, ≥32 chars* | Signing secret for the session JWT. |
+| `LOG_SESSION_TTL` | `3600` | Session length in seconds. |
+| `LOG_MAX_ATTEMPTS` | `5` | Failed logins allowed before lockout. |
+| `LOG_LOCKOUT_MINS` | `15` | Lockout duration after `LOG_MAX_ATTEMPTS`. |
+| `LOG_USERS` | empty | Optional JSON array for multi-user mode (overrides `LOG_USERNAME`/`LOG_PASSWORD_HASH`). |
+
+### Viewer & storage
+
+| Key | Default | Description |
+|---|---|---|
+| `LOG_VIEWER_PATH` | `/logs` | Default mount path (overridable via `path` option). |
+| `LOG_MAX_ENTRIES` | `10000` | Entry cap for memory/file stores. |
+| `LOG_STORAGE_MODE` | `memory` | `memory` or `file`. |
+| `LOG_FILE_PATH` | `logs/app.log` | Single JSON log file. |
+| `LOG_FILE_GLOB` | empty | Glob for daily-rotate mode (e.g. `logs/*.log`). |
+| `LOG_FILE_DAYS` | `30` | Days included when using `LOG_FILE_GLOB`. |
+| `LOG_FILE_LIVE_TAIL` | `true` | Reload file(s) when their mtime changes. |
+
+### Minimal `.env` example
+
+```env
+LOG_AUTH_ENABLED=true
+LOG_USERNAME=admin
+LOG_PASSWORD_HASH=$2a$10$replace_with_real_hash
+LOG_JWT_SECRET=a-long-random-string-of-32-chars-or-more
+LOG_SESSION_TTL=3600
+
+LOG_STORAGE_MODE=file
+LOG_FILE_PATH=logs/app.log
+LOG_FILE_LIVE_TAIL=true
+LOG_MAX_ENTRIES=50000
+```
+
+> Startup fails fast if `LOG_AUTH_ENABLED=true` and any of `LOG_JWT_SECRET` / `LOG_PASSWORD_HASH` are missing, if the secret is the placeholder value, or if it's shorter than 32 characters.
+
+---
+
+## 8. Authentication
+
+### Generating a password hash
+
+```bash
+npx express-loglens-ui hash-password "your-password"
+```
+
+Copy the output into `LOG_PASSWORD_HASH`.
+
+### Single user
+
+```env
+LOG_USERNAME=admin
+LOG_PASSWORD_HASH=$2a$10$...
+```
+
+### Multiple users / roles
+
+Set `LOG_USERS` to a JSON array (this **overrides** `LOG_USERNAME` / `LOG_PASSWORD_HASH`):
+
+```json
+[
+  { "username": "admin",  "passwordHash": "$2a$10$...", "role": "admin"  },
+  { "username": "viewer", "passwordHash": "$2a$10$...", "role": "viewer" }
+]
+```
+
+### Session model
+
+- Login `POST /logs/auth/login` issues an `lgr_session` JWT cookie.
+- Cookie flags: `httpOnly`, `sameSite: 'strict'`, `secure` in production.
+- TTL controlled by `LOG_SESSION_TTL`.
+- Logout `POST /logs/auth/logout` clears the cookie.
+
+### Brute-force protection
+
+The login route is rate-limited. After `LOG_MAX_ATTEMPTS` failures, the client is locked out for `LOG_LOCKOUT_MINS` minutes.
+
+### Disabling auth (local dev only)
+
+```env
+LOG_AUTH_ENABLED=false
+```
+
+Never disable auth on a network-reachable instance.
+
+---
+
+## 9. Public API
+
+```ts
+import { createLoggerUI, LoggerUI, LogStore, LogEntry } from 'express-loglens-ui';
+```
+
+### `createLoggerUI(options?: CreateLoggerUIOptions): LoggerUI`
+
+Returns:
+
+```ts
+interface LoggerUI {
+  middleware(): Router;                                         // mount with app.use(...)
+  info(message: string, meta?: object): void;
+  warn(message: string, meta?: object): void;
+  error(message: string, meta?: object): void;
+  debug(message: string, meta?: object): void;
+}
+```
+
+### Special `meta` keys
+
+| Key | Effect |
+|---|---|
+| `_timestamp` | ISO string override for the entry's timestamp (useful for replays/backfills). |
+
+### Exported types
+
+`LogEntry`, `LogLevel`, `LogStore`, `QueryOptions`, `QueryResult`, `StatsResult`, `StorageMode`, `CreateLogStoreOptions`, `HourBucket`, `SourceInsight`, `ErrorMessageInsight`, `SpikeHourInsight`.
+
+---
+
+## 10. REST Endpoints
+
+All endpoints are relative to the mount path (default `/logs`). All require auth when `LOG_AUTH_ENABLED=true`.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/` | HTML dashboard. |
+| `GET` | `/login` | Login HTML page. |
+| `POST` | `/auth/login` | `{ username, password }` → sets session cookie. |
+| `POST` | `/auth/logout` | Clears session cookie. |
+| `GET` | `/api/logs` | List logs. Query: `level`, `source`, `search`, `startDate`, `endDate`, `limit`, `offset`. |
+| `GET` | `/api/stats` | Aggregates: totals by level, hour buckets, error/warn rate, top noisy sources, recurring errors, spike hours. |
+| `GET` | `/api/sources` | List of known source labels (for the filter dropdown). |
+| `GET` | `/export/csv` | CSV of the filtered set (same query params as `/api/logs`). |
+
+---
+
+## 11. Dashboard Walkthrough
+
+Open the mount path in a browser. The page is laid out top-down for fast triage.
+
+1. **Metric cards** — Total / Errors / Warnings / Info for the active filter set.
+2. **Log Volume by Hour** — stacked bar chart by level. Click a bar to filter to that hour; click again to clear.
+3. **Quality Insights**
+   - **Error Rate / Warn Rate** — health signal scoped to current filters.
+   - **Top Noisy Sources** — highest-volume sources with their own error rate.
+   - **Recurring Error Messages** — most repeated error texts.
+   - **Spike Hours** — hours with unusually high activity or error concentration.
+4. **Filter toolbar** — search (debounced, matches message + source), level dropdown, source dropdown, date range (presets `1h` / `24h` / `7d` / `Custom` with `Apply` / `Cancel` / `Clear` and inline validation), `Clear Filters`, `Export CSV`. Active filters appear as removable chips.
+5. **Log table** — Timestamp, Level (coloured badge), Source, Message. Only the **first line** of the message is shown; a `▸` caret marks rows with more content. Click a row to expand:
+   - **Full message** — complete multi-line content, monospaced and scrollable.
+   - **Metadata** — pretty-printed JSON of the `meta` payload.
+
+The UI is responsive (desktop / laptop / tablet) and re-flows toolbar, insights, and pagination at smaller widths.
+
+---
+
+## 12. Writing Logs (Best Practices)
+
+The viewer renders only the **first line** of the message in the table and tucks the rest into the expandable detail panel. Structure your logs around that.
+
+### Shape
+
+Keep the first line short and scannable. Put context in `meta`.
+
+```ts
+logger.info('Request complete', { method: 'GET', path: '/users', status: 200, durationMs: 42 });
+logger.warn('Slow query detected', { sqlHash: 'ab12', durationMs: 1800, rows: 3200 });
+logger.error('Failed to charge customer', { customerId: 'cus_123', provider: 'stripe', code: 'card_declined' });
+```
+
+### Errors with stack traces
 
 ```ts
 try {
@@ -74,195 +530,82 @@ try {
 } catch (error) {
   logger.error(
     `${error.name}: ${error.message}\n${error.stack}`,
-    { requestId: req.id, userId: id }
+    { requestId: req.id, userId: id },
   );
 }
 ```
 
-For Express/Nest error middleware, this shape works well:
+### Express error middleware
 
 ```ts
 app.use((err, req, _res, next) => {
   logger.error(
-    `${err.name ?? "Error"}: ${err.message}\n${err.stack ?? ""}`,
-    { method: req.method, url: req.originalUrl, ip: req.ip, statusCode: err.status ?? 500 }
+    `${err.name ?? 'Error'}: ${err.message}\n${err.stack ?? ''}`,
+    { method: req.method, url: req.originalUrl, ip: req.ip, statusCode: err.status ?? 500 },
   );
   next(err);
 });
 ```
 
-### Structured metadata
-
-The second argument (`meta`) is serialized as JSON and shown inside the expanded detail view. Prefer flat, consistent keys so filtering and CSV export stay useful:
-
-- Good: `{ requestId, userId, route, durationMs, statusCode }`
-- Avoid: deeply nested objects, circular references, or embedding full request/response bodies.
-- `meta._timestamp` (ISO string) overrides the ingestion timestamp if you're replaying historical events.
-
 ### Choosing a level
-
-The level drives the chart, metric cards, insights, and filters — keep it aligned with intent:
 
 | Level | Use for |
 |---|---|
-| `info` | Normal lifecycle events, successful requests, state transitions |
-| `warn` | Recoverable issues, slow operations, deprecation hits |
-| `error` | Thrown exceptions, failed jobs, 5xx responses |
-| `debug` | Verbose diagnostics for non-production environments |
+| `info`  | Normal lifecycle events, successful requests, state transitions. |
+| `warn`  | Recoverable issues, slow operations, deprecation hits. |
+| `error` | Thrown exceptions, failed jobs, 5xx responses. |
+| `debug` | Verbose diagnostics for non-production. |
 
-### Capturing `console.*` from legacy code
+### Capturing legacy `console.*`
 
-Set `interceptConsole: true` when calling `createLoggerUI` to forward `console.log/info/warn/error/debug` into the store automatically. Legacy modules that still write to `console` will show up in the viewer with no refactor needed — multi-line traces will be truncated in the table and expandable just like explicit `logger.error` calls.
+Set `interceptConsole: true`. Any `console.log/info/warn/error/debug` from third-party or legacy code will appear in the viewer with no refactor.
 
-## Demo App
+### Replaying historical events
 
-Run the local demo with seeded events:
+Pass `meta._timestamp` (ISO string) to override the ingestion time. Useful when importing past data.
 
-```bash
-npm run dev
-```
+---
 
-Then open `http://localhost:3000/logs`. The demo seeds 50 logs across a 24-hour window using `api`, `auth`, `database`, `worker`, and `scheduler` sources.
+## 13. CSV Export
 
-## Viewing Logs
+- Endpoint: `GET /export/csv` (relative to the mount path).
+- Columns: `id, timestamp, level, source, message, meta`.
+- `meta` is JSON-encoded.
+- Filename: `logs-YYYY-MM-DD.csv`.
+- Respects the same query parameters as `GET /api/logs` (so the toolbar's filters carry over to the download).
 
-Open the mount path (`/logs` by default) in a browser. The dashboard is organized top-down for fast triage.
+---
 
-### Metric cards and volume chart
+## 14. Security
 
-- **Total Logs**, **Errors**, **Warnings**, and **Info** cards summarize the current filter set.
-- **Log Volume by Hour** is a stacked bar chart coloured by level. Click a bar to drill into logs for that hour; click the active bar again to clear.
+- Auth routes are rate-limited.
+- JWT cookies are `httpOnly`, `sameSite: 'strict'`, and `secure` in production.
+- Startup validation refuses to boot with a missing/short/placeholder `LOG_JWT_SECRET` when auth is enabled.
+- The package never logs the password or JWT.
+- File mode reads only the paths you configure — globs are resolved relative to the process CWD, not user input.
+- Responsible disclosure: see [SECURITY.md](./SECURITY.md).
 
-### Filter toolbar
+---
 
-A single compact bar containing:
+## 15. Troubleshooting
 
-- **Search** — debounced substring match against message and source; matches are highlighted inline in the table.
-- **Level** and **Source** dropdowns.
-- **Date range** — quick presets (`Last 1h`, `Last 24h`, `Last 7d`) plus `Custom` with `From` / `To` date-time inputs and `Apply` / `Cancel` / `Clear` controls. Validation is inline (end must be after start).
-- **Clear Filters** resets all controls.
-- **Export CSV** downloads the currently filtered set.
+| Symptom | Likely cause / fix |
+|---|---|
+| `Missing required environment variables` at startup | Set `LOG_JWT_SECRET` and `LOG_PASSWORD_HASH`, or set `LOG_AUTH_ENABLED=false` for local dev. |
+| `LOG_JWT_SECRET must be at least 32 characters long.` | Generate a longer random secret. |
+| Logging in succeeds but the page redirects to login | Cookie blocked. In production, ensure HTTPS so the `secure` cookie flag works; behind a proxy, set `app.set('trust proxy', 1)`. |
+| Memory mode shows no logs after restart | Expected — memory mode is non-persistent. Switch to file mode. |
+| File mode shows no logs | Confirm the file exists, is readable, and contains one JSON object per line. Check `meta._timestampParseFailed` on rows. |
+| Daily glob shows no logs | Ensure filenames contain `YYYY-MM-DD` and fall within `LOG_FILE_DAYS`. |
+| 401 on every request after deploy | Clock skew can invalidate JWTs — sync server time (NTP). |
+| NestJS + Fastify: UI doesn't load | Use `@nestjs/platform-express` or bridge the route via Express. |
 
-Active filters appear as removable chips below the toolbar.
+---
 
-### Log table
+## 16. Contributing / Changelog / License
 
-- Columns: **Timestamp**, **Level** (coloured badge), **Source**, **Message**.
-- Each row shows only the **first line** of the message so the table stays one-line-per-entry even for logs containing stack traces.
-- A `▸` caret in front of the message marks rows that have additional content (stack traces, multi-line output, or metadata).
-- Click a row to expand it; click again to collapse. The detail panel shows:
-  - **Full message** — the complete multi-line content, monospaced and scrollable.
-  - **Metadata** — the `meta` payload as pretty-printed JSON.
-- Error rows are flagged with a red left border for quick scanning.
-
-### Quality insights
-
-The insights panel recomputes against the active filters so you can narrow to a level/source/date range and inspect quality in context.
-
-## Dashboard Insights
-
-The dashboard includes a **Log Quality Insights** panel to help triage issues faster:
-
-- **Error Rate / Warn Rate**: quick health signal for current filters.
-- **Top Noisy Sources**: sources with the highest volume, including source-level error rate.
-- **Recurring Error Messages**: most repeated error messages to identify hotspots.
-- **Spike Hours**: hours with unusually high activity or error concentration.
-
-All insights are computed from the currently active filters, so you can narrow to a level/source/date range and inspect quality in context.
-
-## Date Range UX
-
-Date filtering is optimized for fast analysis:
-
-- Use quick presets: `Last 1h`, `Last 24h`, `Last 7d`.
-- Choose `Custom` for manual start/end date-time input.
-- Click **Apply** to run the filter (no click-outside required).
-- Click **Cancel** to discard in-progress edits and restore the applied range.
-- Click **Clear** to remove date filtering.
-
-Validation is inline and prevents invalid ranges (for example, end date before start date).
-
-## Configuration Reference
-
-| Key | Default | Description |
-|---|---|---|
-| `LOG_AUTH_ENABLED` | `true` | Enable/disable auth checks |
-| `LOG_USERNAME` | `admin` | Single-user username |
-| `LOG_PASSWORD_HASH` | empty | Bcrypt hash for single-user mode |
-| `LOG_JWT_SECRET` | required | JWT signing secret |
-| `LOG_SESSION_TTL` | `3600` | Session TTL in seconds |
-| `LOG_MAX_ATTEMPTS` | `5` | Login attempts before lockout |
-| `LOG_LOCKOUT_MINS` | `15` | Lockout duration in minutes |
-| `LOG_USERS` | empty | Optional JSON array of users |
-| `LOG_VIEWER_PATH` | `/logs` | Mount path |
-| `LOG_MAX_ENTRIES` | `10000` | In-memory cap or loaded-file cap |
-| `LOG_STORAGE_MODE` | `memory` | `memory` or `file` |
-| `LOG_FILE_PATH` | `logs/app.log` | Winston JSON file path |
-| `LOG_FILE_GLOB` | empty | Optional glob (e.g. `logs/*.log`) to read multiple daily files |
-| `LOG_FILE_DAYS` | `30` | Days to include when using `LOG_FILE_GLOB` (based on `YYYY-MM-DD` in filenames) |
-| `LOG_FILE_LIVE_TAIL` | `true` | Reload file when modified |
-
-## API Reference
-
-### `createLoggerUI(options?)`
-
-Creates and returns a logger instance with middleware and helper log methods.
-
-Options:
-
-- `path?: string` - Mount path for viewer routes (default: `"/logs"` or `LOG_VIEWER_PATH`).
-- `interceptConsole?: boolean` - Captures `console.*` output into the store.
-- `source?: string` - Default source label for helper methods.
-- `storageMode?: "memory" | "file"` - Explicit storage mode override.
-- `maxEntries?: number` - Entry cap for memory and file-backed stores.
-- `filePath?: string` - Path to Winston JSON log file in file mode.
-- `fileLiveTail?: boolean` - Reloads log file on file updates.
-- `store?: LogStore` - Inject a custom/in-memory/file store implementation.
-
-Returned object:
-
-- `middleware(): Router` - Mountable Express router for UI + API routes.
-- `info(message, meta?)`
-- `warn(message, meta?)`
-- `error(message, meta?)`
-- `debug(message, meta?)`
-
-## Winston File Mode
-
-- Use JSON log lines (one JSON object per line).
-- Supported keys: `timestamp`, `level`, `message`, `source`, `meta`.
-- Extra keys are collected into `meta`.
-- Malformed lines are skipped safely.
-- Enable `LOG_FILE_LIVE_TAIL=true` to refresh the viewer as the log file changes.
-
-Timestamp parsing is tolerant and accepts common formats:
-
-- ISO strings (e.g. `2026-01-01T12:00:00.000Z`)
-- Space-separated Winston timestamps (e.g. `2026-02-26 16:18:18`)
-- Epoch seconds or milliseconds (number or numeric string)
-
-If a timestamp can’t be parsed, the entry is still ingested with the current time and `meta._timestampParseFailed=true`.
-
-### Daily rotate (multi-file)
-
-If your app writes one log file per day (e.g. `logs/2026-03-10.log`), configure:
-
-- `LOG_STORAGE_MODE=file`
-- `LOG_FILE_GLOB=logs/*.log`
-- `LOG_FILE_DAYS=30`
-
-Notes:
-
-- Filenames must contain a `YYYY-MM-DD` date for day filtering.
-- `LOG_FILE_GLOB` takes precedence over `LOG_FILE_PATH` (unless you pass `filePath` directly to `createLoggerUI`).
-
-Example line:
-
-```json
-{"timestamp":"2026-01-01T12:00:00.000Z","level":"info","message":"Request complete","source":"api","meta":{"status":200,"durationMs":42}}
-```
-
-## NestJS Compatibility
-
-`express-loglens-ui` mounts directly in Express apps and in NestJS apps using the Express adapter. If your Nest app uses Fastify, you need an adapter bridge before mounting this middleware.
-
+- **Contributing:** [CONTRIBUTING.md](./CONTRIBUTING.md)
+- **Code of Conduct:** [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
+- **Security policy:** [SECURITY.md](./SECURITY.md)
+- **License:** MIT — see [LICENSE](./LICENSE).

@@ -3,8 +3,10 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import { AddressInfo } from "net";
 import { afterEach, describe, expect, it } from "vitest";
+import readline from "readline";
 import { createAuthRoutes } from "../src/auth/authRoutes";
 import { createAuthMiddleware } from "../src/auth/authMiddleware";
+import { runHashPasswordCli } from "../src/auth/hashPassword";
 import { createLoggerUIMiddleware } from "../src/middleware";
 import { createInMemoryLogStore } from "../src/store/logStore";
 
@@ -25,8 +27,9 @@ async function startApp(app: express.Express): Promise<string> {
   return `http://127.0.0.1:${port}`;
 }
 
-describe("auth routes", () => {
-  it("logs in successfully with valid credentials", async () => {
+describe("Authentication", () => {
+  describe("POST /auth/login", () => {
+    it("returns 200 and sets cookie on valid credentials", async () => {
     const hash = await bcrypt.hash("secret", 10);
     const app = express();
     app.use(express.json());
@@ -46,10 +49,13 @@ describe("auth routes", () => {
       body: JSON.stringify({ username: "admin", password: "secret" })
     });
     expect(response.status).toBe(200);
-    expect(response.headers.get("set-cookie")).toContain("lgr_session=");
+      const cookie = response.headers.get("set-cookie") ?? "";
+      expect(cookie).toContain("lgr_session=");
+      expect(cookie).toContain("HttpOnly");
+      expect(cookie).toContain("SameSite=Strict");
   });
 
-  it("rejects invalid credentials", async () => {
+    it("returns 401 on wrong password", async () => {
     const hash = await bcrypt.hash("secret", 10);
     const app = express();
     app.use(express.json());
@@ -68,12 +74,94 @@ describe("auth routes", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ username: "admin", password: "wrong" })
     });
-    expect(response.status).toBe(401);
-  });
-});
+      expect(response.status).toBe(401);
+    });
 
-describe("auth middleware", () => {
-  it("returns unauthorized for protected API without token", async () => {
+    it("returns 401 on unknown username", async () => {
+      const hash = await bcrypt.hash("secret", 10);
+      const app = express();
+      app.use(express.json());
+      app.use(cookieParser());
+      app.use(createAuthRoutes({
+        enabled: true,
+        users: [{ username: "admin", passwordHash: hash, role: "admin" }],
+        jwtSecret: "this-is-a-long-jwt-secret-value-123456",
+        sessionTtlSeconds: 3600,
+        maxAttempts: 2,
+        lockoutMins: 15
+      }));
+      const baseUrl = await startApp(app);
+      const response = await fetch(`${baseUrl}/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "ghost", password: "secret" })
+      });
+      expect(response.status).toBe(401);
+      const body = await response.json() as { message: string };
+      expect(body.message).not.toMatch(/\$2[aby]\$/);
+    });
+
+    it("rate limits after LOG_MAX_ATTEMPTS failed logins", async () => {
+      const hash = await bcrypt.hash("secret", 10);
+      const app = express();
+      app.use(express.json());
+      app.use(cookieParser());
+      app.use(createAuthRoutes({
+        enabled: true,
+        users: [{ username: "admin", passwordHash: hash, role: "admin" }],
+        jwtSecret: "this-is-a-long-jwt-secret-value-123456",
+        sessionTtlSeconds: 3600,
+        maxAttempts: 1,
+        lockoutMins: 1
+      }));
+      const baseUrl = await startApp(app);
+      await fetch(`${baseUrl}/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "admin", password: "bad" })
+      });
+      const blocked = await fetch(`${baseUrl}/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "admin", password: "bad" })
+      });
+      expect(blocked.status).toBe(429);
+    });
+
+    it("skips auth entirely when LOG_AUTH_ENABLED is false", async () => {
+      const app = express();
+      app.use(express.json());
+      app.use(cookieParser());
+      app.use(createAuthRoutes({
+        enabled: false,
+        users: [],
+        jwtSecret: "this-is-a-long-jwt-secret-value-123456",
+        sessionTtlSeconds: 3600,
+        maxAttempts: 5,
+        lockoutMins: 15
+      }));
+      const baseUrl = await startApp(app);
+      const response = await fetch(`${baseUrl}/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "any", password: "any" })
+      });
+      expect(response.status).toBe(200);
+    });
+  });
+  describe("authMiddleware", () => {
+    it("allows through when auth is disabled", async () => {
+      const app = express();
+      app.use(cookieParser());
+      app.get("/logs", createAuthMiddleware({ enabled: false, jwtSecret: "secret" }), (_req, res) => {
+        res.json({ ok: true });
+      });
+      const baseUrl = await startApp(app);
+      const response = await fetch(`${baseUrl}/logs`);
+      expect(response.status).toBe(200);
+    });
+
+    it("returns 401 for API routes with no cookie", async () => {
     const app = express();
     app.use(cookieParser());
     app.get("/logs", createAuthMiddleware({ enabled: true, jwtSecret: "secret" }), (_req, res) => {
@@ -133,5 +221,67 @@ describe("auth middleware", () => {
     const body = await response.json();
     expect(response.status).toBe(401);
     expect(body).toEqual({ ok: false, message: "Unauthorized" });
+  });
+  });
+
+  describe("POST /auth/logout", () => {
+    it("returns ok true", async () => {
+      const app = express();
+      app.use(express.json());
+      app.use(cookieParser());
+      app.use(createAuthRoutes({
+        enabled: false,
+        users: [],
+        jwtSecret: "this-is-a-long-jwt-secret-value-123456",
+        sessionTtlSeconds: 3600,
+        maxAttempts: 5,
+        lockoutMins: 15
+      }));
+      const baseUrl = await startApp(app);
+      const response = await fetch(`${baseUrl}/auth/logout`, { method: "POST" });
+      const body = await response.json() as { ok: boolean };
+      expect(response.status).toBe(200);
+      expect(body.ok).toBe(true);
+    });
+  });
+
+  describe("hashPassword CLI", () => {
+    it("generates a valid bcrypt hash from input", async () => {
+      const originalArgv = process.argv;
+      process.argv = ["node", "cli", "test-secret"];
+      const writes: string[] = [];
+      const originalLog = console.log;
+      console.log = (message?: unknown): void => {
+        writes.push(String(message ?? ""));
+      };
+      await runHashPasswordCli();
+      console.log = originalLog;
+      process.argv = originalArgv;
+      expect(writes[0].startsWith("$2")).toBe(true);
+    });
+
+    it("prompts for password when argv is missing", async () => {
+      const originalArgv = process.argv;
+      process.argv = ["node", "cli"];
+      const originalCreateInterface = readline.createInterface;
+      (readline.createInterface as unknown as (options: unknown) => unknown) = () => {
+        return {
+          question: (_prompt: string, callback: (answer: string) => void): void => {
+            callback("from-prompt");
+          },
+          close: (): void => {}
+        };
+      };
+      const writes: string[] = [];
+      const originalLog = console.log;
+      console.log = (message?: unknown): void => {
+        writes.push(String(message ?? ""));
+      };
+      await runHashPasswordCli();
+      console.log = originalLog;
+      process.argv = originalArgv;
+      readline.createInterface = originalCreateInterface;
+      expect(writes[0].startsWith("$2")).toBe(true);
+    });
   });
 });

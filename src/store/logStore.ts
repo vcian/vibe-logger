@@ -1,8 +1,8 @@
-import fs from "fs";
-import path from "path";
-import { randomUUID } from "crypto";
+import fs from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
 
-export type LogLevel = "info" | "warn" | "error" | "debug";
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
 
 export interface LogEntry {
   id: string;
@@ -69,7 +69,7 @@ export interface SpikeHourInsight {
 }
 
 export interface LogStore {
-  append(entry: Omit<LogEntry, "id">): LogEntry;
+  append(entry: Omit<LogEntry, 'id'>): LogEntry;
   query(options: QueryOptions): QueryResult;
   stats(): StatsResult;
   clear(): void;
@@ -89,31 +89,31 @@ export interface GlobFileStoreOptions {
   liveTail?: boolean;
 }
 
-export type StorageMode = "memory" | "file";
+export type StorageMode = 'memory' | 'file';
 
 export interface InMemoryStoreOptions {
   maxEntries: number;
 }
 
 export type CreateLogStoreOptions =
-  | ({ mode?: "memory" } & InMemoryStoreOptions)
-  | ({ mode: "file" } & (SingleFileStoreOptions | GlobFileStoreOptions));
+  | ({ mode?: 'memory' } & InMemoryStoreOptions)
+  | ({ mode: 'file' } & (SingleFileStoreOptions | GlobFileStoreOptions));
 
 function normalizeLevel(level: string): LogLevel {
-  if (level === "info" || level === "warn" || level === "error" || level === "debug") {
+  if (level === 'info' || level === 'warn' || level === 'error' || level === 'debug') {
     return level;
   }
-  return "info";
+  return 'info';
 }
 
-function sanitizeEntry(entry: Omit<LogEntry, "id">): LogEntry {
+function sanitizeEntry(entry: Omit<LogEntry, 'id'>): LogEntry {
   return {
     id: randomUUID(),
     timestamp: entry.timestamp ? new Date(entry.timestamp).toISOString() : new Date().toISOString(),
     level: normalizeLevel(entry.level),
-    message: String(entry.message ?? ""),
+    message: String(entry.message ?? ''),
     source: entry.source ? String(entry.source) : undefined,
-    meta: entry.meta && typeof entry.meta === "object" ? entry.meta : undefined
+    meta: entry.meta && typeof entry.meta === 'object' ? entry.meta : undefined,
   };
 }
 
@@ -127,13 +127,13 @@ function enforceLimit(entries: LogEntry[], maxEntries: number): LogEntry[] {
 function filterEntries(entries: LogEntry[], options: QueryOptions): LogEntry[] {
   const startMs: number | null = options.startDate ? Date.parse(options.startDate) : null;
   const endMs: number | null = options.endDate ? Date.parse(options.endDate) : null;
-  const searchValue: string = (options.search ?? "").trim().toLowerCase();
+  const searchValue: string = (options.search ?? '').trim().toLowerCase();
 
   return entries.filter((entry: LogEntry): boolean => {
-    if (options.level && options.level !== "all" && entry.level !== options.level) {
+    if (options.level && options.level !== 'all' && entry.level !== options.level) {
       return false;
     }
-    if (options.source && options.source !== "all" && (entry.source ?? "") !== options.source) {
+    if (options.source && options.source !== 'all' && (entry.source ?? '') !== options.source) {
       return false;
     }
 
@@ -145,7 +145,7 @@ function filterEntries(entries: LogEntry[], options: QueryOptions): LogEntry[] {
       return false;
     }
     if (searchValue) {
-      const haystack: string = `${entry.message} ${entry.source ?? ""}`.toLowerCase();
+      const haystack: string = `${entry.message} ${entry.source ?? ''}`.toLowerCase();
       if (!haystack.includes(searchValue)) {
         return false;
       }
@@ -164,28 +164,37 @@ function queryEntries(entries: LogEntry[], options: QueryOptions): QueryResult {
 
   return {
     data: sorted.slice(offset, offset + limit),
-    total: sorted.length
+    total: sorted.length,
   };
 }
 
 function buildStats(entries: LogEntry[]): StatsResult {
   const byLevel: Record<string, number> = { info: 0, warn: 0, error: 0, debug: 0 };
   const byHourMap: Map<string, HourBucket> = new Map<string, HourBucket>();
-  const sourceMap: Map<string, { total: number; errorCount: number }> = new Map<string, { total: number; errorCount: number }>();
+  const sourceMap: Map<string, { total: number; errorCount: number }> = new Map<
+    string,
+    { total: number; errorCount: number }
+  >();
   const errorMessageMap: Map<string, { count: number; sample: string; sources: Set<string> }> =
     new Map<string, { count: number; sample: string; sources: Set<string> }>();
 
   const normalizeErrorMessage = (message: string): string => {
     return message
       .toLowerCase()
-      .replace(/\b\d+\b/g, "#")
-      .replace(/\s+/g, " ")
+      .replace(/\b\d+\b/g, '#')
+      .replace(/\s+/g, ' ')
       .trim();
   };
 
   const summarizeErrorMessage = (message: string): string => {
-    const firstLine: string = String(message ?? "").split(/\r?\n/)[0]?.trim() || "(empty message)";
-    const withoutPathNoise: string = firstLine.replace(/\([^)]*[\\/][^)]*\)/g, "()").replace(/\s+/g, " ").trim();
+    const firstLine: string =
+      String(message ?? '')
+        .split(/\r?\n/)[0]
+        ?.trim() || '(empty message)';
+    const withoutPathNoise: string = firstLine
+      .replace(/\([^)]*[\\/][^)]*\)/g, '()')
+      .replace(/\s+/g, ' ')
+      .trim();
     const maxLength: number = 140;
     if (withoutPathNoise.length <= maxLength) {
       return withoutPathNoise;
@@ -194,41 +203,43 @@ function buildStats(entries: LogEntry[]): StatsResult {
   };
 
   const readNestedString = (value: unknown, key: string): string => {
-    if (!value || typeof value !== "object") {
-      return "";
+    if (!value || typeof value !== 'object') {
+      return '';
     }
     const nested = (value as Record<string, unknown>)[key];
-    if (typeof nested === "string") {
+    if (typeof nested === 'string') {
       return nested.trim();
     }
-    return "";
+    return '';
   };
 
   const getEntryErrorText = (entry: LogEntry): string => {
-    const direct: string = String(entry.message ?? "").trim();
+    const direct: string = String(entry.message ?? '').trim();
     if (direct) {
       return direct;
     }
 
     const meta: Record<string, unknown> = entry.meta ?? {};
-    const metaMessage: string = readNestedString(meta, "message");
+    const metaMessage: string = readNestedString(meta, 'message');
     if (metaMessage) {
       return metaMessage;
     }
 
-    const errorMessage: string = readNestedString(meta.error, "message");
+    const errorMessage: string = readNestedString(meta.error, 'message');
     if (errorMessage) {
       return errorMessage;
     }
 
-    const stackCandidate: unknown = meta.stack ?? (meta.error && typeof meta.error === "object"
-      ? (meta.error as Record<string, unknown>).stack
-      : undefined);
-    if (typeof stackCandidate === "string" && stackCandidate.trim()) {
+    const stackCandidate: unknown =
+      meta.stack ??
+      (meta.error && typeof meta.error === 'object'
+        ? (meta.error as Record<string, unknown>).stack
+        : undefined);
+    if (typeof stackCandidate === 'string' && stackCandidate.trim()) {
       return stackCandidate.split(/\r?\n/)[0].trim();
     }
 
-    return "(unlabeled error)";
+    return '(unlabeled error)';
   };
 
   for (const entry of entries) {
@@ -236,25 +247,31 @@ function buildStats(entries: LogEntry[]): StatsResult {
     const date: Date = new Date(entry.timestamp);
     date.setMinutes(0, 0, 0);
     const hour: string = date.toISOString();
-    const bucket: HourBucket = byHourMap.get(hour) ?? { hour, info: 0, warn: 0, error: 0, debug: 0 };
+    const bucket: HourBucket = byHourMap.get(hour) ?? {
+      hour,
+      info: 0,
+      warn: 0,
+      error: 0,
+      debug: 0,
+    };
     bucket[entry.level] += 1;
     byHourMap.set(hour, bucket);
 
-    const source: string = (entry.source ?? "unknown").trim() || "unknown";
+    const source: string = (entry.source ?? 'unknown').trim() || 'unknown';
     const sourceBucket = sourceMap.get(source) ?? { total: 0, errorCount: 0 };
     sourceBucket.total += 1;
-    if (entry.level === "error") {
+    if (entry.level === 'error') {
       sourceBucket.errorCount += 1;
     }
     sourceMap.set(source, sourceBucket);
 
-    if (entry.level === "error") {
+    if (entry.level === 'error') {
       const errorText: string = getEntryErrorText(entry);
       const key: string = normalizeErrorMessage(errorText);
       const errorBucket = errorMessageMap.get(key) ?? {
         count: 0,
         sample: summarizeErrorMessage(errorText),
-        sources: new Set<string>()
+        sources: new Set<string>(),
       };
       errorBucket.count += 1;
       if (entry.source) {
@@ -264,9 +281,11 @@ function buildStats(entries: LogEntry[]): StatsResult {
     }
   }
 
-  const byHour: HourBucket[] = [...byHourMap.values()].sort((a: HourBucket, b: HourBucket): number => {
-    return Date.parse(a.hour) - Date.parse(b.hour);
-  });
+  const byHour: HourBucket[] = [...byHourMap.values()].sort(
+    (a: HourBucket, b: HourBucket): number => {
+      return Date.parse(a.hour) - Date.parse(b.hour);
+    }
+  );
 
   const totalCount: number = entries.length;
   const safeRate = (value: number): number => {
@@ -281,7 +300,8 @@ function buildStats(entries: LogEntry[]): StatsResult {
       source,
       total: values.total,
       errorCount: values.errorCount,
-      errorRate: values.total > 0 ? Number(((values.errorCount / values.total) * 100).toFixed(1)) : 0
+      errorRate:
+        values.total > 0 ? Number(((values.errorCount / values.total) * 100).toFixed(1)) : 0,
     }))
     .sort((a: SourceInsight, b: SourceInsight): number => {
       if (b.total !== a.total) {
@@ -292,10 +312,10 @@ function buildStats(entries: LogEntry[]): StatsResult {
     .slice(0, 5);
 
   const topErrorMessages: ErrorMessageInsight[] = [...errorMessageMap.values()]
-    .map((bucket) => ({
+    .map(bucket => ({
       message: bucket.sample,
       count: bucket.count,
-      sources: [...bucket.sources].sort()
+      sources: [...bucket.sources].sort(),
     }))
     .sort((a: ErrorMessageInsight, b: ErrorMessageInsight): number => b.count - a.count)
     .slice(0, 5);
@@ -329,7 +349,7 @@ function buildStats(entries: LogEntry[]): StatsResult {
         total,
         errorCount: bucket.error,
         totalDelta: Number((total - medianTotal).toFixed(1)),
-        errorDelta: Number((bucket.error - medianError).toFixed(1))
+        errorDelta: Number((bucket.error - medianError).toFixed(1)),
       };
     })
     .filter((bucket: SpikeHourInsight): boolean => {
@@ -351,7 +371,7 @@ function buildStats(entries: LogEntry[]): StatsResult {
     warnRate: safeRate(byLevel.warn ?? 0),
     topNoisySources,
     topErrorMessages,
-    spikeHours
+    spikeHours,
   };
 }
 
@@ -359,7 +379,7 @@ export function createInMemoryLogStore(maxEntries: number): LogStore {
   let entries: LogEntry[] = [];
 
   return {
-    append(entry: Omit<LogEntry, "id">): LogEntry {
+    append(entry: Omit<LogEntry, 'id'>): LogEntry {
       const saved: LogEntry = sanitizeEntry(entry);
       entries.push(saved);
       entries = enforceLimit(entries, maxEntries);
@@ -375,76 +395,111 @@ export function createInMemoryLogStore(maxEntries: number): LogStore {
       entries = [];
     },
     getSources(): string[] {
-      return [...new Set(entries.map((entry: LogEntry): string => entry.source ?? "").filter(Boolean))].sort();
-    }
+      return [
+        ...new Set(entries.map((entry: LogEntry): string => entry.source ?? '').filter(Boolean)),
+      ].sort();
+    },
   };
 }
 
-function parseWinstonLine(line: string): Omit<LogEntry, "id"> | null {
+function parseWinstonLine(line: string): Omit<LogEntry, 'id'> | null {
   const trimmed: string = line.trim();
   if (!trimmed) {
     return null;
   }
   try {
-    const parsed: Record<string, unknown> = JSON.parse(trimmed);
-    const level: LogLevel = normalizeLevel(String(parsed.level ?? "info"));
+    const parsedUnknown: unknown = JSON.parse(trimmed);
+    if (!parsedUnknown || typeof parsedUnknown !== 'object' || Array.isArray(parsedUnknown)) {
+      return null;
+    }
+    const parsed: Record<string, unknown> = parsedUnknown as Record<string, unknown>;
+    const level: LogLevel = normalizeLevel(String(parsed.level ?? 'info'));
     const timestampRaw: unknown = parsed.timestamp;
-    const { timestamp, timestampMeta } = (() => {
+    const { timestamp, timestampMeta } = ((): {
+      timestamp: string;
+      timestampMeta: undefined | Record<string, unknown>;
+    } => {
       const nowIso: string = new Date().toISOString();
 
-      if (timestampRaw === undefined || timestampRaw === null || timestampRaw === "") {
-        return { timestamp: nowIso, timestampMeta: undefined as undefined | Record<string, unknown> };
+      if (timestampRaw === undefined || timestampRaw === null || timestampRaw === '') {
+        return {
+          timestamp: nowIso,
+          timestampMeta: undefined as undefined | Record<string, unknown>,
+        };
       }
 
       // Numbers (or numeric strings) can be epoch seconds or ms.
-      if (typeof timestampRaw === "number" || (typeof timestampRaw === "string" && /^\d+(\.\d+)?$/.test(timestampRaw.trim()))) {
-        const rawNum: number = typeof timestampRaw === "number" ? timestampRaw : Number(timestampRaw);
+      if (
+        typeof timestampRaw === 'number' ||
+        (typeof timestampRaw === 'string' && /^\d+(\.\d+)?$/.test(timestampRaw.trim()))
+      ) {
+        const rawNum: number =
+          typeof timestampRaw === 'number' ? timestampRaw : Number(timestampRaw);
         if (Number.isFinite(rawNum)) {
           const msGuess: number = rawNum < 1e12 ? rawNum * 1000 : rawNum;
           const date = new Date(msGuess);
           if (!Number.isNaN(date.getTime())) {
-            return { timestamp: date.toISOString(), timestampMeta: undefined as undefined | Record<string, unknown> };
+            return {
+              timestamp: date.toISOString(),
+              timestampMeta: undefined as undefined | Record<string, unknown>,
+            };
           }
         }
       }
 
       const rawStr: string = String(timestampRaw).trim();
       if (!rawStr) {
-        return { timestamp: nowIso, timestampMeta: undefined as undefined | Record<string, unknown> };
+        return {
+          timestamp: nowIso,
+          timestampMeta: undefined as undefined | Record<string, unknown>,
+        };
       }
 
       // Most ISO-ish / RFC dates will be handled here.
       const directMs: number = Date.parse(rawStr);
       if (!Number.isNaN(directMs)) {
-        return { timestamp: new Date(directMs).toISOString(), timestampMeta: undefined as undefined | Record<string, unknown> };
+        return {
+          timestamp: new Date(directMs).toISOString(),
+          timestampMeta: undefined as undefined | Record<string, unknown>,
+        };
       }
 
       // Common Winston timestamp format: "YYYY-MM-DD HH:mm:ss" (or with fractional seconds).
       // Convert to a parseable ISO-like string.
-      const normalized: string = rawStr.replace(" ", "T");
-      const withTimezone: string = /Z$|[+-]\d{2}:\d{2}$/.test(normalized) ? normalized : `${normalized}Z`;
+      const normalized: string = rawStr.replace(' ', 'T');
+      const withTimezone: string = /Z$|[+-]\d{2}:\d{2}$/.test(normalized)
+        ? normalized
+        : `${normalized}Z`;
       const ms: number = Date.parse(withTimezone);
       if (!Number.isNaN(ms)) {
-        return { timestamp: new Date(ms).toISOString(), timestampMeta: undefined as undefined | Record<string, unknown> };
+        return {
+          timestamp: new Date(ms).toISOString(),
+          timestampMeta: undefined as undefined | Record<string, unknown>,
+        };
       }
 
       // Last resort: never break ingestion. Store raw timestamp for inspection.
       return {
         timestamp: nowIso,
-        timestampMeta: { _timestampRaw: rawStr, _timestampParseFailed: true }
+        timestampMeta: { _timestampRaw: rawStr, _timestampParseFailed: true },
       };
     })();
-    const message: string = String(parsed.message ?? "");
+    const message: string = String(parsed.message ?? '');
     const source: string | undefined = parsed.source ? String(parsed.source) : undefined;
-    const explicitMeta: Record<string, unknown> | undefined = parsed.meta && typeof parsed.meta === "object"
-      ? (parsed.meta as Record<string, unknown>)
-      : undefined;
-    const metaBase: Record<string, unknown> = explicitMeta ?? Object.fromEntries(
-      Object.entries(parsed).filter(([key]: [string, unknown]): boolean => {
-        return !["level", "message", "timestamp", "source"].includes(key);
-      })
-    );
-    const meta: Record<string, unknown> = timestampMeta ? { ...metaBase, ...timestampMeta } : metaBase;
+    const explicitMeta: Record<string, unknown> | undefined =
+      parsed.meta && typeof parsed.meta === 'object'
+        ? (parsed.meta as Record<string, unknown>)
+        : undefined;
+    const metaBase: Record<string, unknown> =
+      explicitMeta ??
+      Object.fromEntries(
+        Object.entries(parsed).filter(([key]: [string, unknown]): boolean => {
+          return !['level', 'message', 'timestamp', 'source'].includes(key);
+        })
+      );
+    const meta: Record<string, unknown> = timestampMeta
+      ? { ...metaBase, ...timestampMeta }
+      : metaBase;
     return { level, timestamp, message, source, meta };
   } catch (_error) {
     return null;
@@ -452,9 +507,9 @@ function parseWinstonLine(line: string): Omit<LogEntry, "id"> | null {
 }
 
 function globToRegex(pattern: string): RegExp {
-  const escaped: string = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
-  const regexSource: string = `^${escaped.replace(/\*/g, ".*")}$`;
-  return new RegExp(regexSource, "i");
+  const escaped: string = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  const regexSource: string = `^${escaped.replace(/\*/g, '.*')}$`;
+  return new RegExp(regexSource, 'i');
 }
 
 function startOfUtcDayMs(date: Date): number {
@@ -474,9 +529,9 @@ function parseFilenameDateMs(fileName: string): number | null {
 }
 
 function resolveGlob(globPattern: string): { dir: string; fileNameRegex: RegExp } {
-  const normalized: string = globPattern.replace(/\\/g, "/");
-  const lastSlash: number = normalized.lastIndexOf("/");
-  const dirPart: string = lastSlash === -1 ? "." : normalized.slice(0, lastSlash);
+  const normalized: string = globPattern.replace(/\\/g, '/');
+  const lastSlash: number = normalized.lastIndexOf('/');
+  const dirPart: string = lastSlash === -1 ? '.' : normalized.slice(0, lastSlash);
   const filePart: string = lastSlash === -1 ? normalized : normalized.slice(lastSlash + 1);
   const dir: string = path.resolve(dirPart);
   return { dir, fileNameRegex: globToRegex(filePart) };
@@ -513,7 +568,7 @@ function selectFilesByDays(globPattern: string, days: number): string[] {
   }
 
   withDates.sort((a, b) => a.dateMs - b.dateMs);
-  return withDates.map((item) => item.filePath);
+  return withDates.map(item => item.filePath);
 }
 
 function loadEntriesFromFiles(filePaths: string[], maxEntries: number): LogEntry[] {
@@ -522,9 +577,9 @@ function loadEntriesFromFiles(filePaths: string[], maxEntries: number): LogEntry
     if (!fs.existsSync(filePath)) {
       continue;
     }
-    const raw: string = fs.readFileSync(filePath, "utf8");
+    const raw: string = fs.readFileSync(filePath, 'utf8');
     for (const line of raw.split(/\r?\n/)) {
-      const parsed: Omit<LogEntry, "id"> | null = parseWinstonLine(line);
+      const parsed: Omit<LogEntry, 'id'> | null = parseWinstonLine(line);
       if (!parsed) {
         continue;
       }
@@ -543,7 +598,7 @@ function loadEntriesFromFiles(filePaths: string[], maxEntries: number): LogEntry
 
 export function createGlobFileBackedLogStore(options: GlobFileStoreOptions): LogStore {
   let entries: LogEntry[] = [];
-  let lastSignature: string = "";
+  let lastSignature: string = '';
   const liveTail: boolean = Boolean(options.liveTail);
 
   function computeSignature(files: string[]): string {
@@ -556,7 +611,7 @@ export function createGlobFileBackedLogStore(options: GlobFileStoreOptions): Log
         // ignore
       }
     }
-    return `${files.join("|")}::${maxMtimeMs}`;
+    return `${files.join('|')}::${maxMtimeMs}`;
   }
 
   function reload(force: boolean): void {
@@ -572,7 +627,7 @@ export function createGlobFileBackedLogStore(options: GlobFileStoreOptions): Log
   reload(true);
 
   return {
-    append(entry: Omit<LogEntry, "id">): LogEntry {
+    append(entry: Omit<LogEntry, 'id'>): LogEntry {
       const saved: LogEntry = sanitizeEntry(entry);
       entries.push(saved);
       entries = enforceLimit(entries, options.maxEntries);
@@ -588,12 +643,14 @@ export function createGlobFileBackedLogStore(options: GlobFileStoreOptions): Log
     },
     clear(): void {
       entries = [];
-      lastSignature = "";
+      lastSignature = '';
     },
     getSources(): string[] {
       reload(false);
-      return [...new Set(entries.map((entry: LogEntry): string => entry.source ?? "").filter(Boolean))].sort();
-    }
+      return [
+        ...new Set(entries.map((entry: LogEntry): string => entry.source ?? '').filter(Boolean)),
+      ].sort();
+    },
   };
 }
 
@@ -607,7 +664,7 @@ export function createFileBackedLogStore(options: SingleFileStoreOptions): LogSt
     const dir: string = path.dirname(resolvedPath);
     fs.mkdirSync(dir, { recursive: true });
     if (!fs.existsSync(resolvedPath)) {
-      fs.writeFileSync(resolvedPath, "");
+      fs.writeFileSync(resolvedPath, '');
     }
   }
 
@@ -617,10 +674,10 @@ export function createFileBackedLogStore(options: SingleFileStoreOptions): LogSt
     if (!force && liveTail && stat.mtimeMs <= lastMtimeMs) {
       return;
     }
-    const raw: string = fs.readFileSync(resolvedPath, "utf8");
+    const raw: string = fs.readFileSync(resolvedPath, 'utf8');
     const loaded: LogEntry[] = [];
     for (const line of raw.split(/\r?\n/)) {
-      const parsed: Omit<LogEntry, "id"> | null = parseWinstonLine(line);
+      const parsed: Omit<LogEntry, 'id'> | null = parseWinstonLine(line);
       if (!parsed) {
         continue;
       }
@@ -633,16 +690,19 @@ export function createFileBackedLogStore(options: SingleFileStoreOptions): LogSt
   reload(true);
 
   return {
-    append(entry: Omit<LogEntry, "id">): LogEntry {
+    append(entry: Omit<LogEntry, 'id'>): LogEntry {
       const saved: LogEntry = sanitizeEntry(entry);
       ensureFileExists();
-      fs.appendFileSync(resolvedPath, `${JSON.stringify({
-        timestamp: saved.timestamp,
-        level: saved.level,
-        message: saved.message,
-        source: saved.source,
-        meta: saved.meta ?? {}
-      })}\n`);
+      fs.appendFileSync(
+        resolvedPath,
+        `${JSON.stringify({
+          timestamp: saved.timestamp,
+          level: saved.level,
+          message: saved.message,
+          source: saved.source,
+          meta: saved.meta ?? {},
+        })}\n`
+      );
       entries.push(saved);
       entries = enforceLimit(entries, options.maxEntries);
       lastMtimeMs = fs.statSync(resolvedPath).mtimeMs;
@@ -658,36 +718,38 @@ export function createFileBackedLogStore(options: SingleFileStoreOptions): LogSt
     },
     clear(): void {
       ensureFileExists();
-      fs.writeFileSync(resolvedPath, "");
+      fs.writeFileSync(resolvedPath, '');
       entries = [];
       lastMtimeMs = fs.statSync(resolvedPath).mtimeMs;
     },
     getSources(): string[] {
       reload(false);
-      return [...new Set(entries.map((entry: LogEntry): string => entry.source ?? "").filter(Boolean))].sort();
-    }
+      return [
+        ...new Set(entries.map((entry: LogEntry): string => entry.source ?? '').filter(Boolean)),
+      ].sort();
+    },
   };
 }
 
 export function createLogStore(options: CreateLogStoreOptions): LogStore {
-  const mode: StorageMode = options.mode ?? "memory";
-  if (mode === "file") {
-    const fileOptions = options as Extract<CreateLogStoreOptions, { mode: "file" }>;
-    if ("fileGlob" in fileOptions) {
+  const mode: StorageMode = options.mode ?? 'memory';
+  if (mode === 'file') {
+    const fileOptions = options as Extract<CreateLogStoreOptions, { mode: 'file' }>;
+    if ('fileGlob' in fileOptions) {
       return createGlobFileBackedLogStore({
         fileGlob: fileOptions.fileGlob,
         days: fileOptions.days,
         maxEntries: fileOptions.maxEntries,
-        liveTail: fileOptions.liveTail
+        liveTail: fileOptions.liveTail,
       });
     }
     return createFileBackedLogStore({
       filePath: fileOptions.filePath,
       maxEntries: fileOptions.maxEntries,
-      liveTail: fileOptions.liveTail
+      liveTail: fileOptions.liveTail,
     });
   }
 
-  const memoryOptions = options as Extract<CreateLogStoreOptions, { mode?: "memory" }>;
+  const memoryOptions = options as Extract<CreateLogStoreOptions, { mode?: 'memory' }>;
   return createInMemoryLogStore(memoryOptions.maxEntries);
 }
