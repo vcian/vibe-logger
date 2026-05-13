@@ -555,20 +555,31 @@ function selectFilesByDays(globPattern: string, days: number): string[] {
   const effectiveDays: number = Number.isFinite(days) ? Math.max(1, Math.floor(days)) : 30;
   const cutoffMs: number = todayMs - (effectiveDays - 1) * 24 * 60 * 60 * 1000;
 
-  const withDates: Array<{ filePath: string; dateMs: number }> = [];
+  const scored: Array<{ filePath: string; sortMs: number }> = [];
   for (const filePath of all) {
     const base: string = path.basename(filePath);
-    const dateMs: number | null = parseFilenameDateMs(base);
-    if (dateMs === null) {
-      continue;
+    const dateFromName: number | null = parseFilenameDateMs(base);
+    let dayMs: number;
+    let sortMs: number;
+    if (dateFromName !== null) {
+      dayMs = dateFromName;
+      sortMs = dateFromName;
+    } else {
+      try {
+        const stat: fs.Stats = fs.statSync(filePath);
+        sortMs = stat.mtimeMs;
+        dayMs = startOfUtcDayMs(new Date(stat.mtimeMs));
+      } catch (_error) {
+        continue;
+      }
     }
-    if (dateMs >= cutoffMs && dateMs <= todayMs) {
-      withDates.push({ filePath, dateMs });
+    if (dayMs >= cutoffMs && dayMs <= todayMs) {
+      scored.push({ filePath, sortMs });
     }
   }
 
-  withDates.sort((a, b) => a.dateMs - b.dateMs);
-  return withDates.map(item => item.filePath);
+  scored.sort((a, b) => a.sortMs - b.sortMs);
+  return scored.map((item: { filePath: string }): string => item.filePath);
 }
 
 function loadEntriesFromFiles(filePaths: string[], maxEntries: number): LogEntry[] {

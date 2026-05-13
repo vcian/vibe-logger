@@ -171,7 +171,20 @@ export function createLoggerUI(options: CreateLoggerUIOptions = {}): LoggerUI {
       ? ((): CreateLogStoreOptions => {
           const liveTail: boolean =
             options.fileLiveTail ?? parseBoolean(process.env.LOG_FILE_LIVE_TAIL, true);
+          const daysFromEnv: number = parseNumber(process.env.LOG_FILE_DAYS, 30);
+
+          const looksLikeGlob = (p: string): boolean => /[*?]/.test(p);
+
           if (options.filePath) {
+            if (looksLikeGlob(options.filePath)) {
+              return {
+                mode: 'file',
+                fileGlob: options.filePath,
+                days: daysFromEnv,
+                maxEntries,
+                liveTail,
+              };
+            }
             return {
               mode: 'file',
               filePath: options.filePath,
@@ -179,20 +192,32 @@ export function createLoggerUI(options: CreateLoggerUIOptions = {}): LoggerUI {
               liveTail,
             };
           }
+
           const fileGlob: string = (process.env.LOG_FILE_GLOB ?? '').trim();
           if (fileGlob) {
-            const days: number = parseNumber(process.env.LOG_FILE_DAYS, 30);
             return {
               mode: 'file',
               fileGlob,
-              days,
+              days: daysFromEnv,
               maxEntries,
               liveTail,
             };
           }
+
+          const envFilePath: string = (process.env.LOG_FILE_PATH ?? '').trim();
+          if (looksLikeGlob(envFilePath)) {
+            return {
+              mode: 'file',
+              fileGlob: envFilePath,
+              days: daysFromEnv,
+              maxEntries,
+              liveTail,
+            };
+          }
+
           return {
             mode: 'file',
-            filePath: process.env.LOG_FILE_PATH ?? 'logs/app.log',
+            filePath: envFilePath || 'logs/app.log',
             maxEntries,
             liveTail,
           };

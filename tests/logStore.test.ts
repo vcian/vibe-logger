@@ -197,4 +197,26 @@ describe("file-backed log store", () => {
     const result = store.query({ limit: 50, offset: 0 });
     expect(result.total).toBe(3);
   });
+
+  it("includes globbed files without YYYY-MM-DD in the filename using mtime for the day window", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "express-loglens-ui-glob-plain-"));
+    const filePath = path.join(dir, "application.log");
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: "info",
+        message: "plain-name",
+        source: "api",
+      })
+    );
+    const store = createLogStore({
+      mode: "file",
+      fileGlob: path.join(dir, "*.log"),
+      days: 30,
+      maxEntries: 10,
+      liveTail: true,
+    });
+    expect(store.query({}).total).toBe(1);
+  });
 });
