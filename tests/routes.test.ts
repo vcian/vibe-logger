@@ -63,6 +63,36 @@ describe("log routes", () => {
     expect(body.total).toBe(1);
   });
 
+  it("filters by search query param (message and meta)", async () => {
+    const store = createInMemoryLogStore(100);
+    store.append({
+      timestamp: "2026-01-01T00:00:00.000Z",
+      level: "info",
+      message: "hello world",
+      source: "api",
+    });
+    store.append({
+      timestamp: "2026-01-01T01:00:00.000Z",
+      level: "info",
+      message: "other",
+      source: "worker",
+      meta: { traceId: "abc-xyz-99" },
+    });
+    const app = express();
+    app.use("/logs", createLogRoutes(store));
+    const baseUrl = await startApp(app);
+
+    const byMessage = await fetch(`${baseUrl}/logs?search=hello`);
+    const bodyMessage = await byMessage.json();
+    expect(bodyMessage.total).toBe(1);
+    expect(bodyMessage.data[0].message).toContain("hello");
+
+    const byMeta = await fetch(`${baseUrl}/logs?search=xyz-99`);
+    const bodyMeta = await byMeta.json();
+    expect(bodyMeta.total).toBe(1);
+    expect(bodyMeta.data[0].message).toBe("other");
+  });
+
   it("returns stats shape", async () => {
     const store = createInMemoryLogStore(100);
     store.append({ timestamp: "2026-01-01T00:00:00.000Z", level: "warn", message: "b", source: "auth" });

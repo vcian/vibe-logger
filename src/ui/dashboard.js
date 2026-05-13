@@ -56,6 +56,8 @@
   let minBarPluginRegistered = false;
   let debounceTimer = null;
   let toastTimer = null;
+  /** Incremented on each fetchLogs; stale responses must not overwrite UI. */
+  let logsFetchGeneration = 0;
   let fpStart = null;
   let fpEnd = null;
 
@@ -658,10 +660,12 @@
     });
   }
 
-  async function fetchStats() {
+  async function fetchStats(forGeneration) {
     const response = await fetch(`./logs/stats?${queryString(false)}`);
+    if (forGeneration !== logsFetchGeneration) return;
     if (!response.ok) throw new Error('Unable to load stats');
     const payload = await response.json();
+    if (forGeneration !== logsFetchGeneration) return;
     const stats = payload.data || {};
     renderStats(stats);
     renderInsights(stats);
@@ -683,21 +687,27 @@
       showToast('Start date must be before end date', true);
       return;
     }
+    const myGeneration = ++logsFetchGeneration;
     showLoading(true);
     try {
       const response = await fetch(`./logs?${queryString(true)}`);
+      if (myGeneration !== logsFetchGeneration) return;
       if (!response.ok) throw new Error('Unable to load logs');
       const payload = await response.json();
+      if (myGeneration !== logsFetchGeneration) return;
       state.logs = payload.data || [];
       state.total = payload.total || 0;
       renderTable();
       renderPagination();
       renderChips();
-      await fetchStats();
+      await fetchStats(myGeneration);
     } catch (error) {
+      if (myGeneration !== logsFetchGeneration) return;
       showToast(error.message || 'Failed to fetch logs', true);
     } finally {
-      showLoading(false);
+      if (myGeneration === logsFetchGeneration) {
+        showLoading(false);
+      }
     }
   }
 
