@@ -145,7 +145,11 @@ function filterEntries(entries: LogEntry[], options: QueryOptions): LogEntry[] {
       return false;
     }
     if (searchValue) {
-      const haystack: string = `${entry.message} ${entry.source ?? ''}`.toLowerCase();
+      const metaStr: string =
+        entry.meta && typeof entry.meta === 'object'
+          ? JSON.stringify(entry.meta)
+          : '';
+      const haystack: string = `${entry.message} ${entry.source ?? ''} ${metaStr}`.toLowerCase();
       if (!haystack.includes(searchValue)) {
         return false;
       }

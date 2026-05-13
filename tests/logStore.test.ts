@@ -35,6 +35,20 @@ describe("logStore", () => {
     expect(result.data.map(entry => entry.message)).toEqual(["4", "3", "2"]);
   });
 
+  it("search matches serialized meta", () => {
+    logStore.append({
+      timestamp: "2026-01-01T00:00:00.000Z",
+      level: "info",
+      message: "ping",
+      source: "api",
+      meta: { requestId: "req-unique-42" },
+    });
+    logStore.append({ timestamp: "2026-01-01T00:01:00.000Z", level: "info", message: "pong", source: "api" });
+    const result = logStore.query({ search: "unique-42", limit: 10, offset: 0 });
+    expect(result.total).toBe(1);
+    expect(result.data[0].message).toBe("ping");
+  });
+
   it("filters by level, source, search and date range", () => {
     logStore.append({ timestamp: "2026-01-01T00:00:00.000Z", level: "error", message: "DB timeout", source: "db" });
     logStore.append({ timestamp: "2026-01-01T01:00:00.000Z", level: "warn", message: "API slow", source: "api" });
