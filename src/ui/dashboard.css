@@ -114,6 +114,7 @@ body.dashboard.page {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  padding-bottom: 40px;
 }
 
 body,
@@ -892,6 +893,7 @@ button.clear-filters,
   -webkit-overflow-scrolling: touch !important;
   width: 100% !important;
   margin-bottom: 16px !important;
+  min-height: 220px !important;
 }
 
 table {
@@ -1441,34 +1443,63 @@ tr.is-expanded .message-caret {
 
 .empty-state {
   text-align: center !important;
-  padding: 60px 20px !important;
+  padding: 72px 20px !important;
   color: var(--text-tertiary) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
 .empty-state-icon {
-  font-size: 40px !important;
-  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 4px !important;
+  opacity: 0.55 !important;
 }
 .empty-state-title {
   font-size: 16px !important;
   font-weight: 600 !important;
   color: var(--text-secondary) !important;
+  margin: 0 !important;
 }
 .empty-state-desc {
   font-size: 14px !important;
   color: var(--text-tertiary) !important;
-  margin-top: 4px !important;
+  margin: 0 !important;
+}
+.empty-state-action {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  color: var(--color-primary) !important;
+  cursor: pointer !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+  font-family: inherit !important;
+}
+.empty-state-action:hover {
+  color: var(--color-primary-hover) !important;
 }
 
 .loading-overlay,
 .spinner-overlay {
   position: fixed !important;
   inset: 0 !important;
-  background: rgba(255, 255, 255, 0.7) !important;
+  background: var(--bg-page) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 9998 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+/* After first data load the overlay becomes semi-transparent for subsequent refreshes */
+.loading-overlay.soft,
+.spinner-overlay.soft {
+  background: rgba(255, 255, 255, 0.7) !important;
 }
 
 .spinner {

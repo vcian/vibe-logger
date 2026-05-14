@@ -56,6 +56,7 @@
   let minBarPluginRegistered = false;
   let debounceTimer = null;
   let toastTimer = null;
+  let initialLoadComplete = false;
   /** Incremented on each fetchLogs; stale responses must not overwrite UI. */
   let logsFetchGeneration = 0;
   let fpStart = null;
@@ -195,9 +196,37 @@
       .join('');
   }
 
+  function hasActiveFilters() {
+    return !!(state.search || state.level || state.source || state.startDate || state.endDate || state.chartHour);
+  }
+
   function renderTable() {
     if (!state.logs.length) {
       els.body.innerHTML = '';
+      if (hasActiveFilters()) {
+        els.empty.innerHTML = `
+          <div class="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" stroke="#d1d5db" stroke-width="1.5"/>
+              <path d="M21 21l-4.35-4.35" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M8 11h6M11 8v6" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="empty-state-title">No logs match your filters</div>
+          <div class="empty-state-desc">Try adjusting or <button class="empty-state-action" id="emptyStateClearBtn">clearing your filters</button></div>`;
+        const clearBtn = document.getElementById('emptyStateClearBtn');
+        if (clearBtn) clearBtn.addEventListener('click', () => els.clear.click());
+      } else {
+        els.empty.innerHTML = `
+          <div class="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="#d1d5db" stroke-width="1.5"/>
+              <path d="M7 8h10M7 12h7M7 16h5" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="empty-state-title">No logs yet</div>
+          <div class="empty-state-desc">Logs will appear here once your application starts generating them</div>`;
+      }
       els.empty.classList.remove('hidden');
       return;
     }
@@ -707,6 +736,10 @@
     } finally {
       if (myGeneration === logsFetchGeneration) {
         showLoading(false);
+        if (!initialLoadComplete) {
+          initialLoadComplete = true;
+          els.loading.classList.add('soft');
+        }
       }
     }
   }
@@ -903,12 +936,24 @@
     }
   });
 
-  els.logout.addEventListener('click', async () => {
-    await fetch('./auth/logout', { method: 'POST' });
-    window.location.href = './login';
-  });
+  // Auth UI — driven by server-injected config (window.__LOGLENS_CONFIG__).
+  // Both elements start hidden in HTML; reveal them only when auth is enabled.
+  const loglensConfig = window.__LOGLENS_CONFIG__ || { authEnabled: false, username: null };
 
-  els.username.textContent = 'Authenticated user';
+  if (loglensConfig.authEnabled) {
+    if (els.username) {
+      els.username.textContent = loglensConfig.username || 'Authenticated user';
+      els.username.classList.remove('hidden');
+    }
+    if (els.logout) {
+      els.logout.classList.remove('hidden');
+      els.logout.addEventListener('click', async () => {
+        await fetch('./auth/logout', { method: 'POST' });
+        window.location.href = './login';
+      });
+    }
+  }
+
   initDatePickers();
   syncDraftInputsFromState();
   fetchLogs();

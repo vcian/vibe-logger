@@ -25,6 +25,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "importHelpers": true,
     "types": ["node"]
   },
   "include": ["src/**/*"],
