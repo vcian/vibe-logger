@@ -50,9 +50,8 @@
     "authentication"
   ],
   "author": {
-    "name": "Your Name",
-    "email": "your@email.com",
-    "url": "https://github.com/yourusername"
+    "name": "vc-raj",
+    "url": "https://github.com/vc-raj"
   },
   "license": "MIT",
   "homepage": "https://github.com/vc-raj/express-loglens-ui#readme",
@@ -78,6 +77,11 @@
     "jsonwebtoken": "^9.0.0",
     "uuid": "^9.0.0"
   },
+  "overrides": {
+    "esbuild": ">=0.25.0",
+    "minimatch": ">=9.0.5",
+    "vite": ">=6.4.2"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.2",
     "@rollup/plugin-node-resolve": "^16.0.0",
@@ -90,7 +94,7 @@
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
-    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
     "eslint": "^8.0.0",
     "prettier": "^3.0.0",
     "rollup": "^4.0.0",
@@ -98,6 +102,6 @@
     "ts-node": "^10.9.0",
     "tslib": "^2.8.1",
     "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "vitest": "^3.0.0"
   }
 }

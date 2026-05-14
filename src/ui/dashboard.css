@@ -114,6 +114,7 @@ body.dashboard.page {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  padding-bottom: 40px;
 }
 
 body,
@@ -443,20 +444,21 @@ canvas.log-chart,
 }
 
 .toolbar-row--filters {
-  align-items: flex-end !important;
-  gap: 14px !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
 }
 
 .filter-field {
   display: flex !important;
   flex-direction: column !important;
-  gap: 6px !important;
+  gap: 5px !important;
   min-width: 0 !important;
-  flex: 1 1 160px !important;
+  flex: 0 0 auto !important;
 }
 
 .filter-field--range {
-  flex: 2 1 320px !important;
+  flex: 1 1 auto !important;
+  position: relative !important;
 }
 
 .filter-label {
@@ -466,6 +468,16 @@ canvas.log-chart,
   letter-spacing: 0.06em !important;
   color: var(--text-secondary) !important;
   user-select: none !important;
+}
+
+.filter-divider {
+  width: 1px !important;
+  height: 52px !important;
+  background: var(--border-color) !important;
+  flex-shrink: 0 !important;
+  border-radius: 1px !important;
+  align-self: center !important;
+  margin: 0 4px !important;
 }
 
 .btn-icon {
@@ -559,9 +571,9 @@ canvas.log-chart,
 }
 
 .toolbar select {
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
+  width: auto !important;
+  min-width: 160px !important;
+  max-width: 220px !important;
 }
 
 .toolbar #searchInput {
@@ -588,9 +600,9 @@ canvas.log-chart,
    ===================================================== */
 .date-filter {
   display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  gap: 10px !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
   width: 100% !important;
   min-width: 0 !important;
   background: transparent !important;
@@ -598,6 +610,7 @@ canvas.log-chart,
   padding: 0 !important;
   box-shadow: none !important;
 }
+
 
 .date-presets {
   display: inline-flex !important;
@@ -645,103 +658,208 @@ canvas.log-chart,
   color: var(--text-primary) !important;
 }
 
+/* =====================================================
+   Date picker panel — lives at <body> level, positioned
+   via JS (position: fixed). All selectors are panel-
+   scoped so they work regardless of DOM position.
+   ===================================================== */
+
 .date-custom-panel {
+  position: fixed !important;
+  z-index: 9999 !important;
+  width: 360px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 10px !important;
-  padding: 12px !important;
-  background: #f9fbfd !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: var(--radius-md) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  box-shadow:
+    0 4px 6px -2px rgba(15, 23, 42, 0.06),
+    0 12px 28px -4px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+  overflow: hidden !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+/* Caret pointing up at the Custom button */
+.date-custom-panel::before {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 100% !important;
+  right: 20px !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 8px solid transparent !important;
+  border-right: 8px solid transparent !important;
+  border-bottom: 9px solid #e2e8f0 !important;
+}
+.date-custom-panel::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 100% !important;
+  right: 21px !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 7px solid transparent !important;
+  border-right: 7px solid transparent !important;
+  border-bottom: 8px solid #ffffff !important;
 }
 
 .date-custom-panel.hidden {
   display: none !important;
 }
 
-.date-custom-row {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)) !important;
-  gap: 10px !important;
-  width: 100% !important;
-  min-width: 0 !important;
+/* ── Header ── */
+.date-custom-panel-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  background: #f8fafc !important;
+  flex-shrink: 0 !important;
 }
 
-.date-field {
+.date-custom-panel-title-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: var(--color-primary) !important;
+}
+
+.date-custom-panel-title {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+  letter-spacing: -0.01em !important;
+}
+
+.date-panel-close {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 30px !important;
+  height: 30px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  color: #94a3b8 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  flex-shrink: 0 !important;
+}
+.date-panel-close:hover {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+
+/* ── Selected range chip (shown after picking) ── */
+.date-custom-panel .date-range-display {
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  background: #eef2ff !important;
+  border: 1px solid #c7d2fe !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--color-primary) !important;
+  text-align: center !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ── Calendar body ── */
+.date-panel-body {
+  padding: 12px 16px 8px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 4px !important;
-  min-width: 0 !important;
+  gap: 10px !important;
 }
 
-.date-field-label {
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  color: var(--text-secondary) !important;
-  letter-spacing: 0.04em !important;
-}
-
-.date-label {
-  display: none !important;
+/* ── Footer ── */
+.date-panel-footer {
+  padding: 12px 16px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  background: #f8fafc !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
 }
 
 .date-actions {
   display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-  width: 100% !important;
   align-items: center !important;
   justify-content: flex-end !important;
-  margin-top: 2px !important;
+  gap: 8px !important;
+  width: 100% !important;
 }
 
-.toolbar .date-actions .btn-date-apply {
-  flex: 0 0 auto !important;
-  min-width: 96px !important;
-  padding: 0 18px !important;
+/* Apply button — panel-scoped (works at body level) */
+.date-custom-panel .btn-date-apply {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 36px !important;
+  padding: 0 20px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  height: 36px !important;
+  font-family: inherit !important;
+  color: #ffffff !important;
   background: var(--btn-primary-gradient) !important;
-  color: #fff !important;
   border: none !important;
-  border-radius: var(--radius-sm) !important;
-  box-shadow:
-    0 1px 2px rgba(23, 63, 138, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(23, 63, 138, 0.3), inset 0 1px 0 rgba(255,255,255,0.15) !important;
   cursor: pointer !important;
-  transition:
-    filter 0.15s ease,
-    box-shadow 0.15s ease !important;
+  transition: filter 0.15s ease, box-shadow 0.15s ease !important;
+  white-space: nowrap !important;
+}
+.date-custom-panel .btn-date-apply:hover:not(:disabled) {
+  filter: brightness(1.06) !important;
+  box-shadow: 0 4px 10px rgba(23, 63, 138, 0.3), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+}
+.date-custom-panel .btn-date-apply:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
 }
 
-.toolbar .date-actions .btn-date-apply:hover {
-  background: var(--btn-primary-hover) !important;
-  filter: brightness(1.05) !important;
-}
-
-.toolbar .date-actions .btn-link {
-  flex: 0 0 auto !important;
+/* Cancel / Clear links — panel-scoped */
+.date-custom-panel .btn-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   height: 36px !important;
   padding: 0 12px !important;
   font-size: 13px !important;
   font-weight: 500 !important;
+  font-family: inherit !important;
+  color: #64748b !important;
   background: transparent !important;
   border: 1px solid transparent !important;
-  color: var(--text-secondary) !important;
+  border-radius: 8px !important;
   cursor: pointer !important;
-  box-shadow: none !important;
-  border-radius: var(--radius-sm) !important;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+  white-space: nowrap !important;
+}
+.date-custom-panel .btn-link:hover {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
 }
 
-.toolbar .date-actions .btn-link:hover {
-  background: rgba(23, 63, 138, 0.06) !important;
-  color: var(--color-primary) !important;
+.date-custom-panel .date-validation {
+  font-size: 12px !important;
+  color: var(--color-error-text) !important;
+  text-align: right !important;
+}
+
+.date-preset-btn--custom {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+}
+
+.date-label {
+  display: none !important;
 }
 
 /* =====================================================
@@ -892,6 +1010,7 @@ button.clear-filters,
   -webkit-overflow-scrolling: touch !important;
   width: 100% !important;
   margin-bottom: 16px !important;
+  min-height: 220px !important;
 }
 
 table {
@@ -1441,34 +1560,63 @@ tr.is-expanded .message-caret {
 
 .empty-state {
   text-align: center !important;
-  padding: 60px 20px !important;
+  padding: 72px 20px !important;
   color: var(--text-tertiary) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 
 .empty-state-icon {
-  font-size: 40px !important;
-  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 4px !important;
+  opacity: 0.55 !important;
 }
 .empty-state-title {
   font-size: 16px !important;
   font-weight: 600 !important;
   color: var(--text-secondary) !important;
+  margin: 0 !important;
 }
 .empty-state-desc {
   font-size: 14px !important;
   color: var(--text-tertiary) !important;
-  margin-top: 4px !important;
+  margin: 0 !important;
+}
+.empty-state-action {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  color: var(--color-primary) !important;
+  cursor: pointer !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+  font-family: inherit !important;
+}
+.empty-state-action:hover {
+  color: var(--color-primary-hover) !important;
 }
 
 .loading-overlay,
 .spinner-overlay {
   position: fixed !important;
   inset: 0 !important;
-  background: rgba(255, 255, 255, 0.7) !important;
+  background: var(--bg-page) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 9998 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+/* After first data load the overlay becomes semi-transparent for subsequent refreshes */
+.loading-overlay.soft,
+.spinner-overlay.soft {
+  background: rgba(255, 255, 255, 0.7) !important;
 }
 
 .spinner {
@@ -1565,12 +1713,25 @@ mark {
     font-size: clamp(17px, 2.2vw, 20px) !important;
   }
 
+  .toolbar-row--filters {
+    flex-wrap: wrap !important;
+  }
+
   .toolbar-row--filters .filter-field {
-    flex: 1 1 calc(50% - 7px) !important;
+    flex: 1 1 140px !important;
   }
 
   .toolbar-row--filters .filter-field--range {
     flex: 1 1 100% !important;
+  }
+
+  .filter-divider {
+    display: none !important;
+  }
+
+  .date-custom-panel {
+    width: calc(100vw - 2 * var(--page-padding)) !important;
+    max-width: 368px !important;
   }
 }
 
@@ -1615,6 +1776,13 @@ mark {
 
   .toolbar-row--filters .filter-field {
     flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+
+  .toolbar select {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
   }
 
   .toolbar-trailing {
@@ -1655,6 +1823,316 @@ mark {
   .insights-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* =====================================================
+   Date range display + Inline Flatpickr calendar
+   ===================================================== */
+.date-range-display {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--color-primary) !important;
+  background: var(--color-primary-light) !important;
+  border: 1px solid rgba(23, 63, 138, 0.18) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 9px 14px !important;
+  text-align: center !important;
+  letter-spacing: -0.01em !important;
+}
+
+.date-range-calendar {
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+/* ── Flatpickr inline calendar wrapper ── */
+.date-range-calendar .flatpickr-calendar.inline {
+  position: static !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* ── Month navigation row ── */
+.date-range-calendar .flatpickr-months {
+  padding: 0 0 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  background: transparent !important;
+  height: 36px !important;
+}
+
+.date-range-calendar .flatpickr-month {
+  background: transparent !important;
+  color: #1e293b !important;
+  height: 36px !important;
+  line-height: 36px !important;
+}
+
+.date-range-calendar .flatpickr-current-month {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  padding-top: 0 !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 0 !important;
+}
+
+.date-range-calendar .flatpickr-monthDropdown-months {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 7px !important;
+  padding: 0 6px !important;
+  height: 30px !important;
+  cursor: pointer !important;
+  -webkit-appearance: auto !important;
+  appearance: auto !important;
+  outline: none !important;
+}
+
+.date-range-calendar .flatpickr-monthDropdown-months:hover,
+.date-range-calendar .flatpickr-monthDropdown-months:focus {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* ── Year input with styled up/down arrows ── */
+.date-range-calendar .numInputWrapper {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 7px !important;
+  padding: 0 4px !important;
+  height: 30px !important;
+  gap: 2px !important;
+}
+
+.date-range-calendar .numInputWrapper:hover {
+  border-color: #cbd5e1 !important;
+}
+
+.date-range-calendar .numInput.cur-year {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  height: 28px !important;
+  width: 44px !important;
+  padding: 0 2px !important;
+  text-align: center !important;
+  border-radius: 0 !important;
+  -moz-appearance: textfield !important;
+  pointer-events: auto !important;
+  cursor: text !important;
+  outline: none !important;
+}
+
+/* Hide native number input spinners in webkit */
+.date-range-calendar .numInput.cur-year::-webkit-outer-spin-button,
+.date-range-calendar .numInput.cur-year::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+}
+
+/* Custom up/down arrow buttons */
+.date-range-calendar .numInputWrapper span {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 16px !important;
+  height: 14px !important;
+  cursor: pointer !important;
+  opacity: 0.55 !important;
+  position: static !important;
+  border: none !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.date-range-calendar .numInputWrapper span:hover {
+  opacity: 1 !important;
+  background: transparent !important;
+}
+
+.date-range-calendar .numInputWrapper span.arrowUp {
+  align-self: flex-start !important;
+  margin-top: 2px !important;
+}
+
+.date-range-calendar .numInputWrapper span.arrowDown {
+  align-self: flex-end !important;
+  margin-bottom: 2px !important;
+}
+
+/* flatpickr draws the arrows as ::after pseudo-elements */
+.date-range-calendar .numInputWrapper span::after {
+  border-width: 4px !important;
+}
+
+.date-range-calendar .numInputWrapper span.arrowUp::after {
+  border-bottom-color: #475569 !important;
+  border-bottom-width: 4px !important;
+  top: 26% !important;
+}
+
+.date-range-calendar .numInputWrapper span.arrowDown::after {
+  border-top-color: #475569 !important;
+  border-top-width: 4px !important;
+  top: 40% !important;
+}
+
+/* ── Prev / Next month arrows ── */
+.date-range-calendar .flatpickr-prev-month,
+.date-range-calendar .flatpickr-next-month {
+  color: var(--text-secondary) !important;
+  fill: var(--text-secondary) !important;
+  padding: 0 8px !important;
+  border-radius: 6px !important;
+  transition: background 0.15s ease !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  top: 3px !important;
+}
+
+.date-range-calendar .flatpickr-prev-month:hover,
+.date-range-calendar .flatpickr-next-month:hover {
+  background: var(--color-primary-light) !important;
+  color: var(--color-primary) !important;
+  fill: var(--color-primary) !important;
+}
+
+.date-range-calendar .flatpickr-prev-month svg,
+.date-range-calendar .flatpickr-next-month svg {
+  fill: inherit !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* ── Weekday header row ── */
+.date-range-calendar .flatpickr-weekdays {
+  background: transparent !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  height: 30px !important;
+}
+
+.date-range-calendar .flatpickr-weekday {
+  background: transparent !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+/* ── Days container ── */
+.date-range-calendar .flatpickr-days {
+  width: 100% !important;
+  min-width: 0 !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+.date-range-calendar .dayContainer {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  padding: 4px 0 !important;
+  overflow: visible !important;
+}
+
+/* ── Individual day cell ── */
+.date-range-calendar .flatpickr-day {
+  color: #1e293b !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  max-width: none !important;
+  border: 1px solid transparent !important;
+  transition: background 0.12s ease, color 0.12s ease !important;
+}
+
+.date-range-calendar .flatpickr-day:hover:not(.flatpickr-disabled):not(.selected):not(.startRange):not(.endRange):not(.inRange) {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+/* Today indicator */
+.date-range-calendar .flatpickr-day.today:not(.selected):not(.startRange):not(.endRange) {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  font-weight: 700 !important;
+  background: transparent !important;
+}
+
+/* ── RANGE: in-between days ── */
+.date-range-calendar .flatpickr-day.inRange,
+.date-range-calendar .flatpickr-day.inRange.today {
+  background: #eff6ff !important;
+  border-color: #eff6ff !important;
+  border-radius: 0 !important;
+  color: #2563eb !important;
+  box-shadow: -5px 0 0 #eff6ff, 5px 0 0 #eff6ff !important;
+}
+
+/* ── RANGE: start / end / single selected — filled circle ── */
+.date-range-calendar .flatpickr-day.selected,
+.date-range-calendar .flatpickr-day.startRange,
+.date-range-calendar .flatpickr-day.endRange,
+.date-range-calendar .flatpickr-day.selected:hover,
+.date-range-calendar .flatpickr-day.startRange:hover,
+.date-range-calendar .flatpickr-day.endRange:hover {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+}
+
+/* ── Prev/next month ghost days ── */
+.date-range-calendar .flatpickr-day.flatpickr-disabled,
+.date-range-calendar .flatpickr-day.prevMonthDay,
+.date-range-calendar .flatpickr-day.nextMonthDay {
+  color: var(--text-tertiary) !important;
+  opacity: 0.38 !important;
+}
+
+/* Ghost days inside the range should not show blue */
+.date-range-calendar .flatpickr-day.prevMonthDay.inRange,
+.date-range-calendar .flatpickr-day.nextMonthDay.inRange {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Apply button disabled state */
+.toolbar .date-actions .btn-date-apply:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+  filter: none !important;
+  pointer-events: none !important;
 }
 
 /* ── Pagination stacks cleanly on narrow widths ── */

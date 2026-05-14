@@ -21,11 +21,12 @@
     search: document.getElementById('searchInput'),
     level: document.getElementById('levelSelect'),
     source: document.getElementById('sourceSelect'),
-    startDate: document.getElementById('startDate'),
-    endDate: document.getElementById('endDate'),
+    dateRangeDisplay: document.getElementById('dateRangeDisplay'),
     applyDate: document.getElementById('applyDateBtn'),
     cancelDate: document.getElementById('cancelDateBtn'),
     clearDate: document.getElementById('clearDateBtn'),
+    closeDatePanel: document.getElementById('closeDatePanelBtn'),
+    datePanel: document.getElementById('dateCustomPanel'),
     dateValidation: document.getElementById('dateValidationMsg'),
     datePresetButtons: Array.from(document.querySelectorAll('.date-preset-btn')),
     clear: document.getElementById('clearFiltersBtn'),
@@ -56,10 +57,10 @@
   let minBarPluginRegistered = false;
   let debounceTimer = null;
   let toastTimer = null;
+  let initialLoadComplete = false;
   /** Incremented on each fetchLogs; stale responses must not overwrite UI. */
   let logsFetchGeneration = 0;
-  let fpStart = null;
-  let fpEnd = null;
+  let fpRange = null;
 
   const minBarHeightPlugin = {
     id: 'minBarHeight',
@@ -84,43 +85,48 @@
     },
   };
 
-  function initDatePickers() {
-    if (typeof flatpickr !== 'function') return;
-    const baseConfig = {
-      enableTime: true,
-      time_24hr: true,
-      dateFormat: 'Y-m-d\\TH:i',
-      allowInput: true,
-      minuteIncrement: 1,
-      disableMobile: true,
-      monthSelectorType: 'static',
-      position: 'auto center',
-    };
-    fpStart = flatpickr(els.startDate, {
-      ...baseConfig,
-      onChange: function () {
-        state.draftStartDate = els.startDate.value;
-        setPresetActive('custom');
-        setDateValidation('');
-      },
-    });
-    fpEnd = flatpickr(els.endDate, {
-      ...baseConfig,
-      onChange: function () {
-        state.draftEndDate = els.endDate.value;
-        setPresetActive('custom');
-        setDateValidation('');
-      },
-    });
+  function updateDateRangeDisplay() {
+    if (!els.dateRangeDisplay) return;
+    const fmt = d => d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    if (state.draftStartDate && state.draftEndDate) {
+      els.dateRangeDisplay.textContent = `${fmt(new Date(state.draftStartDate))} – ${fmt(new Date(state.draftEndDate))}`;
+      els.dateRangeDisplay.classList.remove('hidden');
+    } else if (state.draftStartDate) {
+      els.dateRangeDisplay.textContent = `${fmt(new Date(state.draftStartDate))} – select end date`;
+      els.dateRangeDisplay.classList.remove('hidden');
+    } else {
+      els.dateRangeDisplay.classList.add('hidden');
+    }
   }
 
-  function setPickerValue(picker, value) {
-    if (!picker) return;
-    if (value) {
-      picker.setDate(value, false);
-    } else {
-      picker.clear(false);
-    }
+  function initDatePickers() {
+    if (typeof flatpickr !== 'function') return;
+    const calendarEl = document.getElementById('dateRangeCalendar');
+    if (!calendarEl) return;
+    fpRange = flatpickr(calendarEl, {
+      mode: 'range',
+      inline: true,
+      dateFormat: 'Y-m-d',
+      disableMobile: true,
+      monthSelectorType: 'dropdown',
+      onChange: function (selectedDates) {
+        if (selectedDates.length >= 2) {
+          const s = selectedDates[0];
+          const e = selectedDates[selectedDates.length - 1];
+          state.draftStartDate = toLocalInputValue(new Date(s.getFullYear(), s.getMonth(), s.getDate(), 0, 0));
+          state.draftEndDate = toLocalInputValue(new Date(e.getFullYear(), e.getMonth(), e.getDate(), 23, 59));
+          els.applyDate.disabled = false;
+        } else {
+          state.draftStartDate = selectedDates.length === 1
+            ? toLocalInputValue(new Date(selectedDates[0].getFullYear(), selectedDates[0].getMonth(), selectedDates[0].getDate(), 0, 0))
+            : '';
+          state.draftEndDate = '';
+          els.applyDate.disabled = true;
+        }
+        updateDateRangeDisplay();
+        setDateValidation('');
+      },
+    });
   }
 
   function showLoading(show) {
@@ -195,9 +201,37 @@
       .join('');
   }
 
+  function hasActiveFilters() {
+    return !!(state.search || state.level || state.source || state.startDate || state.endDate || state.chartHour);
+  }
+
   function renderTable() {
     if (!state.logs.length) {
       els.body.innerHTML = '';
+      if (hasActiveFilters()) {
+        els.empty.innerHTML = `
+          <div class="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" stroke="#d1d5db" stroke-width="1.5"/>
+              <path d="M21 21l-4.35-4.35" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M8 11h6M11 8v6" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="empty-state-title">No logs match your filters</div>
+          <div class="empty-state-desc">Try adjusting or <button class="empty-state-action" id="emptyStateClearBtn">clearing your filters</button></div>`;
+        const clearBtn = document.getElementById('emptyStateClearBtn');
+        if (clearBtn) clearBtn.addEventListener('click', () => els.clear.click());
+      } else {
+        els.empty.innerHTML = `
+          <div class="empty-state-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="3" stroke="#d1d5db" stroke-width="1.5"/>
+              <path d="M7 8h10M7 12h7M7 16h5" stroke="#d1d5db" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="empty-state-title">No logs yet</div>
+          <div class="empty-state-desc">Logs will appear here once your application starts generating them</div>`;
+      }
       els.empty.classList.remove('hidden');
       return;
     }
@@ -707,6 +741,10 @@
     } finally {
       if (myGeneration === logsFetchGeneration) {
         showLoading(false);
+        if (!initialLoadComplete) {
+          initialLoadComplete = true;
+          els.loading.classList.add('soft');
+        }
       }
     }
   }
@@ -723,22 +761,50 @@
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
+  function closeDatePanel() {
+    if (els.datePanel) els.datePanel.classList.add('hidden');
+  }
+
+  function positionDatePanel() {
+    const customBtn = els.datePresetButtons.find(b => b.dataset.range === 'custom');
+    if (!customBtn || !els.datePanel) return;
+    const rect = customBtn.getBoundingClientRect();
+    const W = 368;   // must match CSS width
+    const H = 460;   // conservative estimate — avoids offsetHeight while hidden
+    const gap = 8;
+    let top  = rect.bottom + gap;
+    let left = rect.right - W;
+    if (left < 8) left = 8;
+    if (left + W > window.innerWidth  - 8) left = window.innerWidth  - W - 8;
+    if (top  + H > window.innerHeight - 8) top  = rect.top - H - gap;
+    els.datePanel.style.top  = top  + 'px';
+    els.datePanel.style.left = left + 'px';
+  }
+
   function setPresetActive(preset) {
     state.datePreset = preset;
     els.datePresetButtons.forEach(button => {
       button.classList.toggle('active', button.dataset.range === preset);
     });
-    const customPanel = document.getElementById('dateCustomPanel');
-    if (customPanel) {
-      customPanel.classList.toggle('hidden', preset !== 'custom');
+    if (els.datePanel) {
+      const show = preset === 'custom';
+      if (show) positionDatePanel();           // position BEFORE unhiding (avoids flash)
+      els.datePanel.classList.toggle('hidden', !show);
     }
   }
 
   function syncDraftInputsFromState() {
-    setPickerValue(fpStart, state.startDate);
-    setPickerValue(fpEnd, state.endDate);
+    if (fpRange) {
+      if (state.startDate && state.endDate) {
+        fpRange.setDate([state.startDate.substring(0, 10), state.endDate.substring(0, 10)], false);
+      } else {
+        fpRange.clear(false);
+      }
+    }
     state.draftStartDate = state.startDate;
     state.draftEndDate = state.endDate;
+    updateDateRangeDisplay();
+    els.applyDate.disabled = !(state.draftStartDate && state.draftEndDate);
   }
 
   function applyDraftDateRange() {
@@ -757,13 +823,19 @@
     state.startDate = draftStart;
     state.endDate = draftEnd;
     state.chartHour = '';
-    setPresetActive('custom');
+    // Keep 'custom' pill active but close the dropdown panel
+    state.datePreset = 'custom';
+    els.datePresetButtons.forEach(button => {
+      button.classList.toggle('active', button.dataset.range === 'custom');
+    });
+    closeDatePanel();
     state.page = 1;
     fetchLogs();
   }
 
   function applyPreset(range) {
     if (range === 'custom') {
+      syncDraftInputsFromState();
       setPresetActive('custom');
       setDateValidation('');
       return;
@@ -778,8 +850,7 @@
     state.endDate = toLocalInputValue(end);
     state.draftStartDate = state.startDate;
     state.draftEndDate = state.endDate;
-    setPickerValue(fpStart, state.startDate);
-    setPickerValue(fpEnd, state.endDate);
+    if (fpRange) fpRange.setDate([state.startDate.substring(0, 10), state.endDate.substring(0, 10)], false);
     state.chartHour = '';
     setDateValidation('');
     setPresetActive(range);
@@ -802,18 +873,12 @@
   els.search.addEventListener('input', onFilterInput);
   els.level.addEventListener('change', onFilterInput);
   els.source.addEventListener('change', onFilterInput);
-  els.startDate.addEventListener('keydown', event => {
-    if (event.key === 'Enter') applyDraftDateRange();
-    if (event.key === 'Escape') syncDraftInputsFromState();
-  });
-  els.endDate.addEventListener('keydown', event => {
-    if (event.key === 'Enter') applyDraftDateRange();
-    if (event.key === 'Escape') syncDraftInputsFromState();
-  });
   els.applyDate.addEventListener('click', applyDraftDateRange);
   els.cancelDate.addEventListener('click', () => {
     syncDraftInputsFromState();
     setDateValidation('');
+    closeDatePanel();
+    if (!state.startDate && !state.endDate) setPresetActive('');
   });
   els.clearDate.addEventListener('click', () => {
     state.startDate = '';
@@ -821,13 +886,32 @@
     state.draftStartDate = '';
     state.draftEndDate = '';
     state.chartHour = '';
-    setPickerValue(fpStart, '');
-    setPickerValue(fpEnd, '');
+    if (fpRange) fpRange.clear(false);
+    els.applyDate.disabled = true;
+    updateDateRangeDisplay();
     setPresetActive('');
     setDateValidation('');
+    closeDatePanel();
     state.page = 1;
     fetchLogs();
   });
+
+  if (els.closeDatePanel) {
+    els.closeDatePanel.addEventListener('click', () => {
+      closeDatePanel();
+      if (!state.startDate && !state.endDate) setPresetActive('');
+    });
+  }
+
+  // Close the date-picker dropdown when clicking outside panel or Custom button
+  document.addEventListener('click', event => {
+    if (!els.datePanel || els.datePanel.classList.contains('hidden')) return;
+    const customBtn = els.datePresetButtons.find(b => b.dataset.range === 'custom');
+    if (els.datePanel.contains(event.target)) return;
+    if (customBtn && customBtn.contains(event.target)) return;
+    closeDatePanel();
+    if (!state.startDate && !state.endDate) setPresetActive('');
+  }, true);
   els.datePresetButtons.forEach(button => {
     button.addEventListener('click', () => applyPreset(button.dataset.range || ''));
   });
@@ -849,8 +933,9 @@
     els.search.value = '';
     els.level.value = '';
     els.source.value = '';
-    setPickerValue(fpStart, '');
-    setPickerValue(fpEnd, '');
+    if (fpRange) fpRange.clear(false);
+    els.applyDate.disabled = true;
+    updateDateRangeDisplay();
     setPresetActive('');
     setDateValidation('');
     state.page = 1;
@@ -867,8 +952,9 @@
       state.endDate = '';
       state.draftStartDate = '';
       state.draftEndDate = '';
-      setPickerValue(fpStart, '');
-      setPickerValue(fpEnd, '');
+      if (fpRange) fpRange.clear(false);
+      els.applyDate.disabled = true;
+      updateDateRangeDisplay();
       setPresetActive('');
       setDateValidation('');
     } else if (els[key]) {
@@ -903,12 +989,33 @@
     }
   });
 
-  els.logout.addEventListener('click', async () => {
-    await fetch('./auth/logout', { method: 'POST' });
-    window.location.href = './login';
+  // Auth UI — driven by server-injected config (window.__LOGLENS_CONFIG__).
+  // Both elements start hidden in HTML; reveal them only when auth is enabled.
+  const loglensConfig = window.__LOGLENS_CONFIG__ || { authEnabled: false, username: null };
+
+  if (loglensConfig.authEnabled) {
+    if (els.username) {
+      els.username.textContent = loglensConfig.username || 'Authenticated user';
+      els.username.classList.remove('hidden');
+    }
+    if (els.logout) {
+      els.logout.classList.remove('hidden');
+      els.logout.addEventListener('click', async () => {
+        await fetch('./auth/logout', { method: 'POST' });
+        window.location.href = './login';
+      });
+    }
+  }
+
+  // Hoist the panel to <body> so position:fixed is never clipped by a parent stacking context
+  if (els.datePanel) document.body.appendChild(els.datePanel);
+
+  window.addEventListener('resize', () => {
+    if (els.datePanel && !els.datePanel.classList.contains('hidden')) {
+      positionDatePanel();
+    }
   });
 
-  els.username.textContent = 'Authenticated user';
   initDatePickers();
   syncDraftInputsFromState();
   fetchLogs();

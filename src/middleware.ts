@@ -25,6 +25,19 @@ function resolveUiDir(): string {
   return path.resolve(process.cwd(), 'src/ui');
 }
 
+interface DashboardConfig {
+  authEnabled: boolean;
+  username: string | null;
+}
+
+function serveDashboardWithConfig(res: Response, uiDir: string, dashConfig: DashboardConfig): void {
+  const htmlPath = path.join(uiDir, 'dashboard.html');
+  const rawHtml = fs.readFileSync(htmlPath, 'utf-8');
+  const configScript = `<script>window.__LOGLENS_CONFIG__=${JSON.stringify(dashConfig)};</script>`;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(rawHtml.replace('</head>', `  ${configScript}\n  </head>`));
+}
+
 export function createLoggerUIMiddleware(config: MiddlewareConfig, store: LogStore): Router {
   const router: Router = Router();
   const uiDir: string = resolveUiDir();
@@ -62,7 +75,7 @@ export function createLoggerUIMiddleware(config: MiddlewareConfig, store: LogSto
 
   router.get('/', authMiddleware, (req: AuthenticatedRequest, res: Response): void => {
     if (!config.authEnabled) {
-      res.sendFile(path.join(uiDir, 'dashboard.html'));
+      serveDashboardWithConfig(res, uiDir, { authEnabled: false, username: null });
       return;
     }
     if (!req.user) {
@@ -70,7 +83,7 @@ export function createLoggerUIMiddleware(config: MiddlewareConfig, store: LogSto
       res.redirect(loginPath);
       return;
     }
-    res.sendFile(path.join(uiDir, 'dashboard.html'));
+    serveDashboardWithConfig(res, uiDir, { authEnabled: true, username: req.user.username });
   });
 
   router.use('/logs', authMiddleware, createLogRoutes(store));

@@ -420,10 +420,10 @@ Set `LOG_USERS` to a JSON array (this **overrides** `LOG_USERNAME` / `LOG_PASSWO
 
 ### Session model
 
-- Login `POST /logs/auth/login` issues an `lgr_session` JWT cookie.
+- Login `POST <mountPath>/auth/login` (e.g. `POST /logs/auth/login`) issues an `lgr_session` JWT cookie.
 - Cookie flags: `httpOnly`, `sameSite: 'strict'`, `secure` in production.
 - TTL controlled by `LOG_SESSION_TTL`.
-- Logout `POST /logs/auth/logout` clears the cookie.
+- Logout `POST <mountPath>/auth/logout` clears the cookie.
 
 ### Brute-force protection
 
@@ -473,18 +473,23 @@ interface LoggerUI {
 
 ## 10. REST Endpoints
 
-All endpoints are relative to the mount path (default `/logs`). All require auth when `LOG_AUTH_ENABLED=true`.
+All paths below are **relative to the mount path** (default `/logs`). With the default mount path, prepend `/logs` to get the full URL — e.g. `GET /logs/logs`, `POST /logs/auth/login`.
+
+All routes (except `/login` and the static assets) require auth when `LOG_AUTH_ENABLED=true`.
 
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/` | HTML dashboard. |
 | `GET` | `/login` | Login HTML page. |
-| `POST` | `/auth/login` | `{ username, password }` → sets session cookie. |
-| `POST` | `/auth/logout` | Clears session cookie. |
-| `GET` | `/api/logs` | List logs. Query: `level`, `source`, `search`, `startDate`, `endDate`, `limit`, `offset`. |
-| `GET` | `/api/stats` | Aggregates: totals by level, hour buckets, error/warn rate, top noisy sources, recurring errors, spike hours. |
-| `GET` | `/api/sources` | List of known source labels (for the filter dropdown). |
-| `GET` | `/export/csv` | CSV of the filtered set (same query params as `/api/logs`). |
+| `GET` | `/dashboard.css` | Dashboard stylesheet (static asset). |
+| `GET` | `/dashboard.js` | Dashboard script (static asset). |
+| `POST` | `/auth/login` | `{ username, password }` → sets `lgr_session` JWT cookie. |
+| `POST` | `/auth/logout` | Clears the `lgr_session` cookie. |
+| `GET` | `/logs` | Paginated log list. Query params: `level`, `source`, `search`, `startDate`, `endDate`, `limit`, `offset`. |
+| `GET` | `/logs/stats` | Aggregates for the active filter set: totals by level, hour buckets, error/warn rate, top noisy sources, recurring errors, spike hours. Also returns the `sources` array used to populate the filter dropdown. |
+| `GET` | `/logs/export/csv` | CSV download of the filtered set (same query params as `GET /logs`). |
+
+> **No separate sources endpoint.** Source labels are returned in the `sources` field of the `GET /logs/stats` response — there is no standalone `/sources` route.
 
 ---
 
@@ -568,11 +573,11 @@ Pass `meta._timestamp` (ISO string) to override the ingestion time. Useful when 
 
 ## 13. CSV Export
 
-- Endpoint: `GET /export/csv` (relative to the mount path).
+- Endpoint: `GET /logs/export/csv` (relative to the mount path; with default mount `/logs` the full URL is `/logs/logs/export/csv`).
 - Columns: `id, timestamp, level, source, message, meta`.
 - `meta` is JSON-encoded.
 - Filename: `logs-YYYY-MM-DD.csv`.
-- Respects the same query parameters as `GET /api/logs` (so the toolbar's filters carry over to the download).
+- Respects the same query parameters as `GET /logs` (so the toolbar's filters carry over to the download).
 
 ---
 
@@ -593,12 +598,14 @@ Pass `meta._timestamp` (ISO string) to override the ingestion time. Useful when 
 |---|---|
 | `Missing required environment variables` at startup | Set `LOG_JWT_SECRET` and `LOG_PASSWORD_HASH`, or set `LOG_AUTH_ENABLED=false` for local dev. |
 | `LOG_JWT_SECRET must be at least 32 characters long.` | Generate a longer random secret. |
+| Logout button visible when `LOG_AUTH_ENABLED=false` | Upgrade to the latest version — older builds showed auth UI unconditionally; it is now hidden when auth is disabled. |
 | Logging in succeeds but the page redirects to login | Cookie blocked. In production, ensure HTTPS so the `secure` cookie flag works; behind a proxy, set `app.set('trust proxy', 1)`. |
 | Memory mode shows no logs after restart | Expected — memory mode is non-persistent. Switch to file mode. |
 | File mode shows no logs | Confirm the file exists, is readable, and contains one JSON object per line. Check `meta._timestampParseFailed` on rows. |
 | Daily glob shows no logs | Ensure filenames contain `YYYY-MM-DD` and fall within `LOG_FILE_DAYS`. |
 | 401 on every request after deploy | Clock skew can invalidate JWTs — sync server time (NTP). |
 | NestJS + Fastify: UI doesn't load | Use `@nestjs/platform-express` or bridge the route via Express. |
+| `npm audit` reports vulnerabilities after install | Run `npm install` with the latest published version — the package pins safe dependency ranges via `overrides` in `package.json`. |
 
 ---
 
