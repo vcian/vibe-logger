@@ -138,6 +138,9 @@
             <option value="">All Sources</option>
           </select>
         </label>
+
+        <div class="filter-divider" aria-hidden="true"></div>
+
         <div class="filter-field filter-field--range">
           <span class="filter-label">Time range</span>
           <div class="date-filter" id="dateFilter">
@@ -145,25 +148,42 @@
               <button type="button" class="date-preset-btn" data-range="1h">1h</button>
               <button type="button" class="date-preset-btn" data-range="24h">24h</button>
               <button type="button" class="date-preset-btn" data-range="7d">7d</button>
-              <button type="button" class="date-preset-btn" data-range="custom">Custom</button>
+              <button type="button" class="date-preset-btn date-preset-btn--custom" data-range="custom">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                  <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Custom
+              </button>
             </div>
-            <div class="date-custom-panel hidden" id="dateCustomPanel">
-              <div class="date-custom-row">
-                <label class="date-field">
-                  <span class="date-field-label">From</span>
-                  <input id="startDate" type="datetime-local" placeholder="yyyy-mm-dd hh:mm" />
-                </label>
-                <label class="date-field">
-                  <span class="date-field-label">To</span>
-                  <input id="endDate" type="datetime-local" placeholder="yyyy-mm-dd hh:mm" />
-                </label>
+
+            <div class="date-custom-panel hidden" id="dateCustomPanel" role="dialog" aria-label="Custom date range">
+              <div class="date-custom-panel-header">
+                <div class="date-custom-panel-title-row">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                    <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span class="date-custom-panel-title">Custom date range</span>
+                </div>
+                <button type="button" class="date-panel-close" id="closeDatePanelBtn" aria-label="Close date picker">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
               </div>
-              <div class="date-actions">
-                <button type="button" id="applyDateBtn" class="btn-date-apply">Apply</button>
-                <button type="button" id="cancelDateBtn" class="btn-link">Cancel</button>
-                <button type="button" id="clearDateBtn" class="btn-link">Clear</button>
+              <div class="date-panel-body">
+                <div class="date-range-display hidden" id="dateRangeDisplay" aria-live="polite"></div>
+                <div id="dateRangeCalendar" class="date-range-calendar"></div>
               </div>
-              <p id="dateValidationMsg" class="date-validation hidden" aria-live="polite"></p>
+              <div class="date-panel-footer">
+                <div class="date-actions">
+                  <button type="button" id="applyDateBtn" class="btn-date-apply" disabled>Apply range</button>
+                  <button type="button" id="cancelDateBtn" class="btn-link">Cancel</button>
+                  <button type="button" id="clearDateBtn" class="btn-link">Clear</button>
+                </div>
+                <p id="dateValidationMsg" class="date-validation hidden" aria-live="polite"></p>
+              </div>
             </div>
           </div>
         </div>
