@@ -10,7 +10,7 @@
 
 Please do NOT open a public GitHub issue for security vulnerabilities.
 
-Instead, email: security@yourdomain.com
+Report privately via [GitHub Security Advisories](https://github.com/vcian/vibe-logger/security/advisories/new) or email: support@viitorcloud.com
 
 Include:
 - Description of the vulnerability

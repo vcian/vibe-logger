@@ -1,5 +1,5 @@
 {
-  "name": "express-loglens-ui",
+  "name": "vibe-logger",
   "version": "1.0.0",
   "description": "A drop-in log viewer UI for Node.js/Express apps with search, filter, date range, chart, CSV export and .env-based authentication",
   "main": "dist/index.cjs.js",
@@ -13,7 +13,7 @@
     }
   },
   "bin": {
-    "express-loglens-ui": "dist/cli.js"
+    "vibe-logger": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -50,17 +50,17 @@
     "authentication"
   ],
   "author": {
-    "name": "vc-raj",
-    "url": "https://github.com/vc-raj"
+    "name": "vcian",
+    "url": "https://github.com/vcian"
   },
   "license": "MIT",
-  "homepage": "https://github.com/vc-raj/express-loglens-ui#readme",
+  "homepage": "https://github.com/vcian/vibe-logger#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vc-raj/express-loglens-ui.git"
+    "url": "git+https://github.com/vcian/vibe-logger.git"
   },
   "bugs": {
-    "url": "https://github.com/vc-raj/express-loglens-ui/issues"
+    "url": "https://github.com/vcian/vibe-logger/issues"
   },
   "engines": {
     "node": ">=16.0.0",

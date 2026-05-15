@@ -1,11 +1,14 @@
-# express-loglens-ui
+# vibe-logger
 
 > A drop-in log viewer UI for Node.js (Express and NestJS) — search, filter, date range, time-series chart, CSV export, auth, and pluggable memory/file storage.
 
-![npm version](https://img.shields.io/npm/v/express-loglens-ui)
-![license](https://img.shields.io/npm/l/express-loglens-ui)
-![node](https://img.shields.io/node/v/express-loglens-ui)
-![downloads](https://img.shields.io/npm/dm/express-loglens-ui)
+**Repository:** [github.com/vcian/vibe-logger](https://github.com/vcian/vibe-logger)
+
+![npm version](https://img.shields.io/npm/v/vibe-logger)
+![GitHub stars](https://img.shields.io/github/stars/vcian/vibe-logger?style=social)
+![license](https://img.shields.io/npm/l/vibe-logger)
+![node](https://img.shields.io/node/v/vibe-logger)
+![downloads](https://img.shields.io/npm/dm/vibe-logger)
 
 ---
 
@@ -36,7 +39,7 @@
 
 ## 1. Overview
 
-`express-loglens-ui` mounts a small Express router that serves a self-contained log dashboard plus a JSON API. It works in two distinct modes:
+`vibe-logger` mounts a small Express router that serves a self-contained log dashboard plus a JSON API. It works in two distinct modes:
 
 | Mode | Source of logs | Use when |
 |---|---|---|
@@ -59,7 +62,7 @@
 ## 2. Installation
 
 ```bash
-npm install express-loglens-ui
+npm install vibe-logger
 ```
 
 Requirements:
@@ -75,7 +78,7 @@ Requirements:
 ```ts
 import 'dotenv/config';
 import express from 'express';
-import { createLoggerUI } from 'express-loglens-ui';
+import { createLoggerUI } from 'vibe-logger';
 
 const app = express();
 
@@ -98,7 +101,7 @@ Open `http://localhost:3000/logs` and sign in with the credentials configured in
 
 ## 4. Quick Start — NestJS
 
-`express-loglens-ui` is just an Express router, so it works inside any NestJS app that uses the default Express adapter (`@nestjs/platform-express`).
+`vibe-logger` is just an Express router, so it works inside any NestJS app that uses the default Express adapter (`@nestjs/platform-express`).
 
 ### 4.1 Bootstrap-time mount (simplest)
 
@@ -108,7 +111,7 @@ Mount the middleware directly on the underlying Express instance in `main.ts`:
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { createLoggerUI } from 'express-loglens-ui';
+import { createLoggerUI } from 'vibe-logger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -136,7 +139,7 @@ Wrap the logger so any service can inject and use it.
 ```ts
 // logger.module.ts
 import { Module, Global } from '@nestjs/common';
-import { createLoggerUI, LoggerUI } from 'express-loglens-ui';
+import { createLoggerUI, LoggerUI } from 'vibe-logger';
 
 export const LOGGER = Symbol('LOGGER');
 
@@ -164,7 +167,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { LOGGER } from './logger.module';
-import type { LoggerUI } from 'express-loglens-ui';
+import type { LoggerUI } from 'vibe-logger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -178,7 +181,7 @@ bootstrap();
 ```ts
 // any.service.ts
 import { Inject, Injectable } from '@nestjs/common';
-import type { LoggerUI } from 'express-loglens-ui';
+import type { LoggerUI } from 'vibe-logger';
 import { LOGGER } from './logger.module';
 
 @Injectable()
@@ -197,10 +200,10 @@ Forward all unhandled exceptions into the viewer:
 
 ```ts
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
-import type { LoggerUI } from 'express-loglens-ui';
+import type { LoggerUI } from 'vibe-logger';
 
 @Catch()
-export class LogLensFilter implements ExceptionFilter {
+export class VibeLoggerFilter implements ExceptionFilter {
   constructor(private readonly logger: LoggerUI) {}
 
   catch(exception: any, host: ArgumentsHost) {
@@ -306,7 +309,7 @@ Rules:
 Inject your own implementation of the `LogStore` interface (e.g. Redis, SQLite, S3-backed):
 
 ```ts
-import { createLoggerUI, LogStore } from 'express-loglens-ui';
+import { createLoggerUI, LogStore } from 'vibe-logger';
 
 const myStore: LogStore = {
   append(entry) { /* ... */ return { ...entry, id: 'uuid' } as any; },
@@ -395,7 +398,7 @@ LOG_MAX_ENTRIES=50000
 ### Generating a password hash
 
 ```bash
-npx express-loglens-ui hash-password "your-password"
+npx vibe-logger hash-password "your-password"
 ```
 
 Copy the output into `LOG_PASSWORD_HASH`.
@@ -442,7 +445,7 @@ Never disable auth on a network-reachable instance.
 ## 9. Public API
 
 ```ts
-import { createLoggerUI, LoggerUI, LogStore, LogEntry } from 'express-loglens-ui';
+import { createLoggerUI, LoggerUI, LogStore, LogEntry } from 'vibe-logger';
 ```
 
 ### `createLoggerUI(options?: CreateLoggerUIOptions): LoggerUI`
@@ -611,6 +614,7 @@ Pass `meta._timestamp` (ISO string) to override the ingestion time. Useful when 
 
 ## 16. Contributing / Changelog / License
 
+- **Source & issues:** [github.com/vcian/vibe-logger](https://github.com/vcian/vibe-logger)
 - **Contributing:** [CONTRIBUTING.md](./CONTRIBUTING.md)
 - **Code of Conduct:** [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
 - **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
