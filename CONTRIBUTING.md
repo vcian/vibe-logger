@@ -1,15 +1,16 @@
-# Contributing to express-loglens-ui
+# Contributing to vibe-logger
 
 Thank you for your interest in contributing!
 
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/yourusername/express-loglens-ui`
-3. Install dependencies: `npm install`
-4. Copy env template: `cp .env.example .env`
-5. Generate a password hash: `npx ts-node src/auth/hashPassword.ts`
-6. Start the dev server: `npm run dev`
+2. Clone your fork: `git clone https://github.com/yourusername/vibe-logger.git`
+3. Or clone upstream: `git clone https://github.com/vcian/vibe-logger.git`
+4. Install dependencies: `npm install`
+5. Copy env template: `cp .env.example .env`
+6. Generate a password hash: `npx ts-node src/auth/hashPassword.ts`
+7. Start the dev server: `npm run dev`
 
 ## Development Workflow
 

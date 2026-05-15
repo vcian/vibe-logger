@@ -989,13 +989,13 @@
     }
   });
 
-  // Auth UI — driven by server-injected config (window.__LOGLENS_CONFIG__).
+  // Auth UI — driven by server-injected config (window.__VIBE_LOGGER_CONFIG__).
   // Both elements start hidden in HTML; reveal them only when auth is enabled.
-  const loglensConfig = window.__LOGLENS_CONFIG__ || { authEnabled: false, username: null };
+  const vibeLoggerConfig = window.__VIBE_LOGGER_CONFIG__ || { authEnabled: false, username: null };
 
-  if (loglensConfig.authEnabled) {
+  if (vibeLoggerConfig.authEnabled) {
     if (els.username) {
-      els.username.textContent = loglensConfig.username || 'Authenticated user';
+      els.username.textContent = vibeLoggerConfig.username || 'Authenticated user';
       els.username.classList.remove('hidden');
     }
     if (els.logout) {

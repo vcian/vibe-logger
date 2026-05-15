@@ -9,7 +9,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 ## [1.0.0] - 2026-05-06
 
 ### Added
-- Initial release of express-loglens-ui
+- Initial release of vibe-logger
 - Real-time log viewer with search, filter, and date range filtering
 - Time-series bar chart (Chart.js) showing log volume by hour
 - CSV export of filtered log entries
@@ -20,7 +20,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 - Express middleware factory pattern — drop-in for any Express app
 - TypeScript support with full type definitions
 - ESM and CJS dual package output
-- CLI helper: npx express-loglens-ui hash-password
+- CLI helper: npx vibe-logger hash-password
 - Console interception mode
 - Light mode UI with responsive design
 - Pagination with configurable rows per page

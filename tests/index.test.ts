@@ -27,7 +27,7 @@ describe("createLoggerUI", () => {
   });
 
   it("honors env-backed file storage defaults", () => {
-    const filePath = path.join(os.tmpdir(), `express-loglens-ui-${Date.now()}-index.log`);
+    const filePath = path.join(os.tmpdir(), `vibe-logger-${Date.now()}-index.log`);
     process.env.LOG_STORAGE_MODE = "file";
     process.env.LOG_FILE_PATH = filePath;
     process.env.LOG_FILE_LIVE_TAIL = "true";

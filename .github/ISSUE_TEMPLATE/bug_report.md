@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a bug in express-loglens-ui
+about: Report a bug in vibe-logger
 labels: bug
 ---
 
@@ -20,7 +20,7 @@ What you expected to happen.
 What actually happened.
 
 ## Environment
-- express-loglens-ui version:
+- vibe-logger version:
 - Node.js version:
 - Express version:
 - OS:

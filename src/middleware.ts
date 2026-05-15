@@ -33,7 +33,7 @@ interface DashboardConfig {
 function serveDashboardWithConfig(res: Response, uiDir: string, dashConfig: DashboardConfig): void {
   const htmlPath = path.join(uiDir, 'dashboard.html');
   const rawHtml = fs.readFileSync(htmlPath, 'utf-8');
-  const configScript = `<script>window.__LOGLENS_CONFIG__=${JSON.stringify(dashConfig)};</script>`;
+  const configScript = `<script>window.__VIBE_LOGGER_CONFIG__=${JSON.stringify(dashConfig)};</script>`;
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(rawHtml.replace('</head>', `  ${configScript}\n  </head>`));
 }

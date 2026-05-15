@@ -97,7 +97,7 @@ describe("logStore", () => {
 
 describe("file-backed log store", () => {
   it("loads valid winston JSON lines and skips malformed lines", () => {
-    const filePath = path.join(os.tmpdir(), `express-loglens-ui-${Date.now()}.log`);
+    const filePath = path.join(os.tmpdir(), `vibe-logger-${Date.now()}.log`);
     fs.writeFileSync(
       filePath,
       [
@@ -142,7 +142,7 @@ describe("file-backed log store", () => {
   });
 
   it("supports append and clear", () => {
-    const filePath = path.join(os.tmpdir(), `express-loglens-ui-${Date.now()}-2.log`);
+    const filePath = path.join(os.tmpdir(), `vibe-logger-${Date.now()}-2.log`);
     const store = createFileBackedLogStore({ filePath, maxEntries: 100, liveTail: true });
     store.append({
       timestamp: new Date().toISOString(),
@@ -165,7 +165,7 @@ describe("file-backed log store", () => {
     });
     expect(memoryStore.query({}).total).toBe(1);
 
-    const filePath = path.join(os.tmpdir(), `express-loglens-ui-${Date.now()}-factory.log`);
+    const filePath = path.join(os.tmpdir(), `vibe-logger-${Date.now()}-factory.log`);
     fs.writeFileSync(
       filePath,
       JSON.stringify({
@@ -180,7 +180,7 @@ describe("file-backed log store", () => {
   });
 
   it("loads last N days from globbed daily files", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "express-loglens-ui-glob-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vibe-logger-glob-"));
     const today = new Date();
     for (let i = 0; i < 5; i += 1) {
       const d = new Date(today);
@@ -213,7 +213,7 @@ describe("file-backed log store", () => {
   });
 
   it("includes globbed files without YYYY-MM-DD in the filename using mtime for the day window", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "express-loglens-ui-glob-plain-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vibe-logger-glob-plain-"));
     const filePath = path.join(dir, "application.log");
     fs.writeFileSync(
       filePath,

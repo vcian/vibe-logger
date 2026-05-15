@@ -44,20 +44,20 @@ function validateEnvConfig(): void {
 
   if (missing.length > 0) {
     throw new Error(
-      `express-loglens-ui: Missing required environment variables: ${missing.join(', ')}. ` +
+      `vibe-logger: Missing required environment variables: ${missing.join(', ')}. ` +
         'Check your .env file against .env.example.'
     );
   }
 
   if (process.env.LOG_JWT_SECRET === 'change-this-to-a-long-random-string') {
     throw new Error(
-      'express-loglens-ui: LOG_JWT_SECRET is set to the default example value. ' +
+      'vibe-logger: LOG_JWT_SECRET is set to the default example value. ' +
         'You must set a unique secret before running in any environment.'
     );
   }
 
   if ((process.env.LOG_JWT_SECRET?.length ?? 0) < 32) {
-    throw new Error('express-loglens-ui: LOG_JWT_SECRET must be at least 32 characters long.');
+    throw new Error('vibe-logger: LOG_JWT_SECRET must be at least 32 characters long.');
   }
 }
 

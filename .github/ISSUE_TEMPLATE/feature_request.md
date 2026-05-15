@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest a new feature for express-loglens-ui
+about: Suggest a new feature for vibe-logger
 labels: enhancement
 ---
 
