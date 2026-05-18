@@ -4,11 +4,11 @@
 
 **Repository:** [github.com/vcian/vibe-logger](https://github.com/vcian/vibe-logger)
 
-![npm version](https://img.shields.io/npm/v/vibe-logger)
+![npm version](https://img.shields.io/npm/v/@vcian/vibe-logger)
 ![GitHub stars](https://img.shields.io/github/stars/vcian/vibe-logger?style=social)
-![license](https://img.shields.io/npm/l/vibe-logger)
-![node](https://img.shields.io/node/v/vibe-logger)
-![downloads](https://img.shields.io/npm/dm/vibe-logger)
+![license](https://img.shields.io/npm/l/@vcian/vibe-logger)
+![node](https://img.shields.io/node/v/@vcian/vibe-logger)
+![downloads](https://img.shields.io/npm/dm/@vcian/vibe-logger)
 
 ---
 
@@ -62,7 +62,7 @@
 ## 2. Installation
 
 ```bash
-npm install vibe-logger
+npm install @vcian/vibe-logger
 ```
 
 Requirements:
@@ -78,7 +78,7 @@ Requirements:
 ```ts
 import 'dotenv/config';
 import express from 'express';
-import { createLoggerUI } from 'vibe-logger';
+import { createLoggerUI } from '@vcian/vibe-logger';
 
 const app = express();
 
@@ -111,7 +111,7 @@ Mount the middleware directly on the underlying Express instance in `main.ts`:
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { createLoggerUI } from 'vibe-logger';
+import { createLoggerUI } from '@vcian/vibe-logger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -139,7 +139,7 @@ Wrap the logger so any service can inject and use it.
 ```ts
 // logger.module.ts
 import { Module, Global } from '@nestjs/common';
-import { createLoggerUI, LoggerUI } from 'vibe-logger';
+import { createLoggerUI, LoggerUI } from '@vcian/vibe-logger';
 
 export const LOGGER = Symbol('LOGGER');
 
@@ -167,7 +167,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { LOGGER } from './logger.module';
-import type { LoggerUI } from 'vibe-logger';
+import type { LoggerUI } from '@vcian/vibe-logger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -181,7 +181,7 @@ bootstrap();
 ```ts
 // any.service.ts
 import { Inject, Injectable } from '@nestjs/common';
-import type { LoggerUI } from 'vibe-logger';
+import type { LoggerUI } from '@vcian/vibe-logger';
 import { LOGGER } from './logger.module';
 
 @Injectable()
@@ -200,7 +200,7 @@ Forward all unhandled exceptions into the viewer:
 
 ```ts
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
-import type { LoggerUI } from 'vibe-logger';
+import type { LoggerUI } from '@vcian/vibe-logger';
 
 @Catch()
 export class VibeLoggerFilter implements ExceptionFilter {
@@ -309,7 +309,7 @@ Rules:
 Inject your own implementation of the `LogStore` interface (e.g. Redis, SQLite, S3-backed):
 
 ```ts
-import { createLoggerUI, LogStore } from 'vibe-logger';
+import { createLoggerUI, LogStore } from '@vcian/vibe-logger';
 
 const myStore: LogStore = {
   append(entry) { /* ... */ return { ...entry, id: 'uuid' } as any; },
@@ -398,7 +398,7 @@ LOG_MAX_ENTRIES=50000
 ### Generating a password hash
 
 ```bash
-npx vibe-logger hash-password "your-password"
+npx @vcian/vibe-logger hash-password "your-password"
 ```
 
 Copy the output into `LOG_PASSWORD_HASH`.
@@ -445,7 +445,7 @@ Never disable auth on a network-reachable instance.
 ## 9. Public API
 
 ```ts
-import { createLoggerUI, LoggerUI, LogStore, LogEntry } from 'vibe-logger';
+import { createLoggerUI, LoggerUI, LogStore, LogEntry } from '@vcian/vibe-logger';
 ```
 
 ### `createLoggerUI(options?: CreateLoggerUIOptions): LoggerUI`
