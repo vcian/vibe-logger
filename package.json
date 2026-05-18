@@ -1,5 +1,5 @@
 {
-  "name": "vibe-logger",
+  "name": "@vcian/vibe-logger",
   "version": "1.0.0",
   "description": "A drop-in log viewer UI for Node.js/Express apps with search, filter, date range, chart, CSV export and .env-based authentication",
   "main": "dist/index.cjs.js",
