@@ -1,7 +1,7 @@
 {
   "name": "@vcian/vibe-logger",
   "version": "1.0.0",
-  "description": "A drop-in log viewer UI for Node.js/Express apps with search, filter, date range, chart, CSV export and .env-based authentication",
+  "description": "Drop-in log viewer UI and dashboard for Node.js, Express, and NestJS — search, filter, date-range queries, time-series chart, CSV export, JWT auth, and pluggable memory/file storage for Winston/Pino-style JSON logs.",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -38,16 +38,44 @@
   "keywords": [
     "logger",
     "log-viewer",
+    "log-dashboard",
+    "log-ui",
+    "log-explorer",
+    "log-analyzer",
+    "log-search",
+    "log-management",
+    "log-monitoring",
+    "logs",
+    "logging",
+    "application-logs",
+    "server-logs",
+    "json-logs",
+    "winston",
+    "pino",
+    "morgan",
+    "bunyan",
     "express",
+    "express-middleware",
+    "nestjs",
+    "nestjs-logger",
+    "nodejs",
+    "node",
+    "typescript",
+    "middleware",
     "dashboard",
     "debugging",
+    "debug",
     "monitoring",
-    "logs",
-    "nodejs",
-    "middleware",
+    "observability",
+    "devops",
+    "error-tracking",
     "chart",
+    "time-series",
     "csv-export",
-    "authentication"
+    "authentication",
+    "jwt",
+    "self-hosted",
+    "real-time-logs"
   ],
   "author": {
     "name": "vcian",
@@ -66,21 +94,25 @@
     "node": ">=16.0.0",
     "npm": ">=7.0.0"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "peerDependencies": {
     "express": ">=4.18.0"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.0.0",
     "express-rate-limit": "^7.0.0",
-    "jsonwebtoken": "^9.0.0",
-    "uuid": "^9.0.0"
+    "jsonwebtoken": "^9.0.0"
   },
   "overrides": {
     "esbuild": ">=0.25.0",
     "minimatch": ">=9.0.5",
-    "vite": ">=6.4.2"
+    "vite": ">=6.4.2",
+    "qs": ">=6.15.2"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.2",
@@ -91,7 +123,6 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.0.0",
-    "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "@vitest/coverage-v8": "^3.0.0",
