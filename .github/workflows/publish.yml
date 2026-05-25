@@ -5,6 +5,16 @@ on:
     tags:
       - "v*.*.*"
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
   publish:
@@ -18,6 +28,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -25,6 +38,12 @@ jobs:
           node-version: 20.x
           registry-url: "https://registry.npmjs.org"
           cache: npm
+
+      - name: Configure git identity
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Install dependencies
         run: npm ci
@@ -41,7 +60,21 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Verify tag matches package.json version
+      - name: Bump version (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        id: bump
+        run: |
+          NEW_VERSION=$(npm version ${{ inputs.release_type }} -m "chore(release): %s")
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Bumped to ${NEW_VERSION}"
+
+      - name: Push version commit and tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git push --follow-tags origin HEAD:${{ github.ref_name }}
+
+      - name: Verify tag matches package.json version (tag push only)
+        if: github.event_name == 'push'
         shell: bash
         run: |
           PKG_VERSION="v$(node -p "require('./package.json').version")"
@@ -53,6 +86,18 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve release tag
+        id: resolve_tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ steps.bump.outputs.new_version }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Release tag: ${TAG}"
+
       - name: Publish to npm
         run: npm publish --provenance --access public
         env:
@@ -62,7 +107,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          name: ${{ github.ref_name }}
-          tag_name: ${{ github.ref_name }}
+          name: ${{ steps.resolve_tag.outputs.tag }}
+          tag_name: ${{ steps.resolve_tag.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
