@@ -1,14 +1,17 @@
 # vibe-logger
 
-> A drop-in log viewer UI for Node.js (Express and NestJS) — search, filter, date range, time-series chart, CSV export, auth, and pluggable memory/file storage.
+<details>
+<summary>A drop-in log viewer UI for Node.js (Express and NestJS) — search, filter, date range, time-series chart, CSV export, auth, and pluggable memory/file storage.</summary>
+</details>
 
 **Repository:** [github.com/vcian/vibe-logger](https://github.com/vcian/vibe-logger)
 
-![npm version](https://img.shields.io/npm/v/@vcian/vibe-logger)
-![GitHub stars](https://img.shields.io/github/stars/vcian/vibe-logger?style=social)
-![license](https://img.shields.io/npm/l/@vcian/vibe-logger)
-![node](https://img.shields.io/node/v/@vcian/vibe-logger)
-![downloads](https://img.shields.io/npm/dm/@vcian/vibe-logger)
+[![CI](https://github.com/vcian/vibe-logger/actions/workflows/ci.yml/badge.svg)](https://github.com/vcian/vibe-logger/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@vcian/vibe-logger)](https://www.npmjs.com/package/@vcian/vibe-logger)
+[![GitHub stars](https://img.shields.io/github/stars/vcian/vibe-logger?style=social)](https://github.com/vcian/vibe-logger)
+[![license](https://img.shields.io/npm/l/@vcian/vibe-logger)](https://github.com/vcian/vibe-logger/blob/main/LICENSE)
+[![node](https://img.shields.io/node/v/@vcian/vibe-logger)](https://www.npmjs.com/package/@vcian/vibe-logger)
+[![downloads](https://img.shields.io/npm/dm/@vcian/vibe-logger)](https://www.npmjs.com/package/@vcian/vibe-logger)
 
 ---
 
@@ -19,10 +22,10 @@
 3. [Quick Start — Express](#3-quick-start--express)
 4. [Quick Start — NestJS](#4-quick-start--nestjs)
 5. [Storage Modes](#5-storage-modes)
-   - [5.1 Memory mode](#51-memory-mode)
-   - [5.2 File mode — single file](#52-file-mode--single-file)
-   - [5.3 File mode — daily rotate (glob)](#53-file-mode--daily-rotate-glob)
-   - [5.4 Custom store](#54-custom-store)
+  - [5.1 Memory mode](#51-memory-mode)
+  - [5.2 File mode — single file](#52-file-mode--single-file)
+  - [5.3 File mode — daily rotate (glob)](#53-file-mode--daily-rotate-glob)
+  - [5.4 Custom store](#54-custom-store)
 6. [Configuration Reference](#6-configuration-reference)
 7. [Environment Variables](#7-environment-variables)
 8. [Authentication](#8-authentication)
@@ -41,10 +44,12 @@
 
 `vibe-logger` mounts a small Express router that serves a self-contained log dashboard plus a JSON API. It works in two distinct modes:
 
-| Mode | Source of logs | Use when |
-|---|---|---|
-| **Memory** | Logs you write via `logger.info/warn/error/debug` (and optionally `console.*`) | You want a live, in-process viewer with zero infrastructure. |
-| **File** | A Winston-style JSON log file (or many files via glob) | You already write JSON logs to disk and want to browse them. |
+
+| Mode       | Source of logs                                                                 | Use when                                                     |
+| ---------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| **Memory** | Logs you write via `logger.info/warn/error/debug` (and optionally `console.`*) | You want a live, in-process viewer with zero infrastructure. |
+| **File**   | A Winston-style JSON log file (or many files via glob)                         | You already write JSON logs to disk and want to browse them. |
+
 
 ### Features
 
@@ -241,13 +246,15 @@ const logger = createLoggerUI({
 });
 ```
 
-| Characteristic | Behaviour |
-|---|---|
-| Persistence | None — logs are lost on process restart. |
-| Ingestion | `logger.info/warn/error/debug(...)` and (optionally) `console.*` interception. |
-| Cap | `maxEntries` (default `10000` or `LOG_MAX_ENTRIES`). |
-| Multi-process | Each process has its own buffer. Use file mode (or a shared store) for clusters. |
-| Best for | Local dev, single-process apps, demos, integration tests. |
+
+| Characteristic | Behaviour                                                                        |
+| -------------- | -------------------------------------------------------------------------------- |
+| Persistence    | None — logs are lost on process restart.                                         |
+| Ingestion      | `logger.info/warn/error/debug(...)` and (optionally) `console.*` interception.   |
+| Cap            | `maxEntries` (default `10000` or `LOG_MAX_ENTRIES`).                             |
+| Multi-process  | Each process has its own buffer. Use file mode (or a shared store) for clusters. |
+| Best for       | Local dev, single-process apps, demos, integration tests.                        |
+
 
 Memory mode is the default and requires no config beyond auth.
 
@@ -330,16 +337,18 @@ When `store` is provided, `storageMode` / `filePath` / `maxEntries` are ignored.
 
 All options accepted by `createLoggerUI(options)`:
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `path` | `string` | `"/logs"` (or `LOG_VIEWER_PATH`) | Mount path for the UI and API. |
-| `source` | `string` | `"app"` | Default `source` label for `logger.info/warn/error/debug`. |
-| `interceptConsole` | `boolean` | `false` | Capture `console.log/info/warn/error/debug` into the store. |
-| `storageMode` | `"memory" \| "file"` | `"memory"` (or `LOG_STORAGE_MODE`) | Storage backend. |
-| `maxEntries` | `number` | `10000` (or `LOG_MAX_ENTRIES`) | Cap for memory/file stores (oldest entries evicted). |
-| `filePath` | `string` | `logs/app.log` (or `LOG_FILE_PATH`) | Single-file path when `storageMode: 'file'`. |
-| `fileLiveTail` | `boolean` | `true` (or `LOG_FILE_LIVE_TAIL`) | Reload file(s) when modified. |
-| `store` | `LogStore` | `undefined` | Inject a custom store (overrides all storage options). |
+
+| Option             | Type       | Default                             | Description                                                 |
+| ------------------ | ---------- | ----------------------------------- | ----------------------------------------------------------- |
+| `path`             | `string`   | `"/logs"` (or `LOG_VIEWER_PATH`)    | Mount path for the UI and API.                              |
+| `source`           | `string`   | `"app"`                             | Default `source` label for `logger.info/warn/error/debug`.  |
+| `interceptConsole` | `boolean`  | `false`                             | Capture `console.log/info/warn/error/debug` into the store. |
+| `storageMode`      | `"memory"  | "file"`                             | `"memory"` (or `LOG_STORAGE_MODE`)                          |
+| `maxEntries`       | `number`   | `10000` (or `LOG_MAX_ENTRIES`)      | Cap for memory/file stores (oldest entries evicted).        |
+| `filePath`         | `string`   | `logs/app.log` (or `LOG_FILE_PATH`) | Single-file path when `storageMode: 'file'`.                |
+| `fileLiveTail`     | `boolean`  | `true` (or `LOG_FILE_LIVE_TAIL`)    | Reload file(s) when modified.                               |
+| `store`            | `LogStore` | `undefined`                         | Inject a custom store (overrides all storage options).      |
+
 
 Resolution order for each setting: **explicit option → env var → built-in default**.
 
@@ -351,28 +360,32 @@ All vars are read from `process.env` (load via `dotenv` or your platform).
 
 ### Authentication
 
-| Key | Default | Description |
-|---|---|---|
-| `LOG_AUTH_ENABLED` | `true` | Master switch. When `true`, all UI and API routes require login. |
-| `LOG_USERNAME` | `admin` | Single-user username. |
-| `LOG_PASSWORD_HASH` | *required when auth on* | Bcrypt hash of the password (use the CLI below). |
-| `LOG_JWT_SECRET` | *required, ≥32 chars* | Signing secret for the session JWT. |
-| `LOG_SESSION_TTL` | `3600` | Session length in seconds. |
-| `LOG_MAX_ATTEMPTS` | `5` | Failed logins allowed before lockout. |
-| `LOG_LOCKOUT_MINS` | `15` | Lockout duration after `LOG_MAX_ATTEMPTS`. |
-| `LOG_USERS` | empty | Optional JSON array for multi-user mode (overrides `LOG_USERNAME`/`LOG_PASSWORD_HASH`). |
+
+| Key                 | Default                 | Description                                                                             |
+| ------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
+| `LOG_AUTH_ENABLED`  | `true`                  | Master switch. When `true`, all UI and API routes require login.                        |
+| `LOG_USERNAME`      | `admin`                 | Single-user username.                                                                   |
+| `LOG_PASSWORD_HASH` | *required when auth on* | Bcrypt hash of the password (use the CLI below).                                        |
+| `LOG_JWT_SECRET`    | *required, ≥32 chars*   | Signing secret for the session JWT.                                                     |
+| `LOG_SESSION_TTL`   | `3600`                  | Session length in seconds.                                                              |
+| `LOG_MAX_ATTEMPTS`  | `5`                     | Failed logins allowed before lockout.                                                   |
+| `LOG_LOCKOUT_MINS`  | `15`                    | Lockout duration after `LOG_MAX_ATTEMPTS`.                                              |
+| `LOG_USERS`         | empty                   | Optional JSON array for multi-user mode (overrides `LOG_USERNAME`/`LOG_PASSWORD_HASH`). |
+
 
 ### Viewer & storage
 
-| Key | Default | Description |
-|---|---|---|
-| `LOG_VIEWER_PATH` | `/logs` | Default mount path (overridable via `path` option). |
-| `LOG_MAX_ENTRIES` | `10000` | Entry cap for memory/file stores. |
-| `LOG_STORAGE_MODE` | `memory` | `memory` or `file`. |
-| `LOG_FILE_PATH` | `logs/app.log` | Single JSON log file. |
-| `LOG_FILE_GLOB` | empty | Glob for daily-rotate mode (e.g. `logs/*.log`). |
-| `LOG_FILE_DAYS` | `30` | Days included when using `LOG_FILE_GLOB`. |
-| `LOG_FILE_LIVE_TAIL` | `true` | Reload file(s) when their mtime changes. |
+
+| Key                  | Default        | Description                                         |
+| -------------------- | -------------- | --------------------------------------------------- |
+| `LOG_VIEWER_PATH`    | `/logs`        | Default mount path (overridable via `path` option). |
+| `LOG_MAX_ENTRIES`    | `10000`        | Entry cap for memory/file stores.                   |
+| `LOG_STORAGE_MODE`   | `memory`       | `memory` or `file`.                                 |
+| `LOG_FILE_PATH`      | `logs/app.log` | Single JSON log file.                               |
+| `LOG_FILE_GLOB`      | empty          | Glob for daily-rotate mode (e.g. `logs/*.log`).     |
+| `LOG_FILE_DAYS`      | `30`           | Days included when using `LOG_FILE_GLOB`.           |
+| `LOG_FILE_LIVE_TAIL` | `true`         | Reload file(s) when their mtime changes.            |
+
 
 ### Minimal `.env` example
 
@@ -464,9 +477,11 @@ interface LoggerUI {
 
 ### Special `meta` keys
 
-| Key | Effect |
-|---|---|
+
+| Key          | Effect                                                                        |
+| ------------ | ----------------------------------------------------------------------------- |
 | `_timestamp` | ISO string override for the entry's timestamp (useful for replays/backfills). |
+
 
 ### Exported types
 
@@ -480,17 +495,19 @@ All paths below are **relative to the mount path** (default `/logs`). With the d
 
 All routes (except `/login` and the static assets) require auth when `LOG_AUTH_ENABLED=true`.
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/` | HTML dashboard. |
-| `GET` | `/login` | Login HTML page. |
-| `GET` | `/dashboard.css` | Dashboard stylesheet (static asset). |
-| `GET` | `/dashboard.js` | Dashboard script (static asset). |
-| `POST` | `/auth/login` | `{ username, password }` → sets `lgr_session` JWT cookie. |
-| `POST` | `/auth/logout` | Clears the `lgr_session` cookie. |
-| `GET` | `/logs` | Paginated log list. Query params: `level`, `source`, `search`, `startDate`, `endDate`, `limit`, `offset`. |
-| `GET` | `/logs/stats` | Aggregates for the active filter set: totals by level, hour buckets, error/warn rate, top noisy sources, recurring errors, spike hours. Also returns the `sources` array used to populate the filter dropdown. |
-| `GET` | `/logs/export/csv` | CSV download of the filtered set (same query params as `GET /logs`). |
+
+| Method | Path               | Description                                                                                                                                                                                                    |
+| ------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/`                | HTML dashboard.                                                                                                                                                                                                |
+| `GET`  | `/login`           | Login HTML page.                                                                                                                                                                                               |
+| `GET`  | `/dashboard.css`   | Dashboard stylesheet (static asset).                                                                                                                                                                           |
+| `GET`  | `/dashboard.js`    | Dashboard script (static asset).                                                                                                                                                                               |
+| `POST` | `/auth/login`      | `{ username, password }` → sets `lgr_session` JWT cookie.                                                                                                                                                      |
+| `POST` | `/auth/logout`     | Clears the `lgr_session` cookie.                                                                                                                                                                               |
+| `GET`  | `/logs`            | Paginated log list. Query params: `level`, `source`, `search`, `startDate`, `endDate`, `limit`, `offset`.                                                                                                      |
+| `GET`  | `/logs/stats`      | Aggregates for the active filter set: totals by level, hour buckets, error/warn rate, top noisy sources, recurring errors, spike hours. Also returns the `sources` array used to populate the filter dropdown. |
+| `GET`  | `/logs/export/csv` | CSV download of the filtered set (same query params as `GET /logs`).                                                                                                                                           |
+
 
 > **No separate sources endpoint.** Source labels are returned in the `sources` field of the `GET /logs/stats` response — there is no standalone `/sources` route.
 
@@ -503,14 +520,14 @@ Open the mount path in a browser. The page is laid out top-down for fast triage.
 1. **Metric cards** — Total / Errors / Warnings / Info for the active filter set.
 2. **Log Volume by Hour** — stacked bar chart by level. Click a bar to filter to that hour; click again to clear.
 3. **Quality Insights**
-   - **Error Rate / Warn Rate** — health signal scoped to current filters.
-   - **Top Noisy Sources** — highest-volume sources with their own error rate.
-   - **Recurring Error Messages** — most repeated error texts.
-   - **Spike Hours** — hours with unusually high activity or error concentration.
+  - **Error Rate / Warn Rate** — health signal scoped to current filters.
+  - **Top Noisy Sources** — highest-volume sources with their own error rate.
+  - **Recurring Error Messages** — most repeated error texts.
+  - **Spike Hours** — hours with unusually high activity or error concentration.
 4. **Filter toolbar** — search (debounced, matches message + source), level dropdown, source dropdown, date range (presets `1h` / `24h` / `7d` / `Custom` with `Apply` / `Cancel` / `Clear` and inline validation), `Clear Filters`, `Export CSV`. Active filters appear as removable chips.
 5. **Log table** — Timestamp, Level (coloured badge), Source, Message. Only the **first line** of the message is shown; a `▸` caret marks rows with more content. Click a row to expand:
-   - **Full message** — complete multi-line content, monospaced and scrollable.
-   - **Metadata** — pretty-printed JSON of the `meta` payload.
+  - **Full message** — complete multi-line content, monospaced and scrollable.
+  - **Metadata** — pretty-printed JSON of the `meta` payload.
 
 The UI is responsive (desktop / laptop / tablet) and re-flows toolbar, insights, and pagination at smaller widths.
 
@@ -557,12 +574,14 @@ app.use((err, req, _res, next) => {
 
 ### Choosing a level
 
-| Level | Use for |
-|---|---|
+
+| Level   | Use for                                                          |
+| ------- | ---------------------------------------------------------------- |
 | `info`  | Normal lifecycle events, successful requests, state transitions. |
-| `warn`  | Recoverable issues, slow operations, deprecation hits. |
-| `error` | Thrown exceptions, failed jobs, 5xx responses. |
-| `debug` | Verbose diagnostics for non-production. |
+| `warn`  | Recoverable issues, slow operations, deprecation hits.           |
+| `error` | Thrown exceptions, failed jobs, 5xx responses.                   |
+| `debug` | Verbose diagnostics for non-production.                          |
+
 
 ### Capturing legacy `console.*`
 
@@ -597,18 +616,20 @@ Pass `meta._timestamp` (ISO string) to override the ingestion time. Useful when 
 
 ## 15. Troubleshooting
 
-| Symptom | Likely cause / fix |
-|---|---|
-| `Missing required environment variables` at startup | Set `LOG_JWT_SECRET` and `LOG_PASSWORD_HASH`, or set `LOG_AUTH_ENABLED=false` for local dev. |
-| `LOG_JWT_SECRET must be at least 32 characters long.` | Generate a longer random secret. |
-| Logout button visible when `LOG_AUTH_ENABLED=false` | Upgrade to the latest version — older builds showed auth UI unconditionally; it is now hidden when auth is disabled. |
-| Logging in succeeds but the page redirects to login | Cookie blocked. In production, ensure HTTPS so the `secure` cookie flag works; behind a proxy, set `app.set('trust proxy', 1)`. |
-| Memory mode shows no logs after restart | Expected — memory mode is non-persistent. Switch to file mode. |
-| File mode shows no logs | Confirm the file exists, is readable, and contains one JSON object per line. Check `meta._timestampParseFailed` on rows. |
-| Daily glob shows no logs | Ensure filenames contain `YYYY-MM-DD` and fall within `LOG_FILE_DAYS`. |
-| 401 on every request after deploy | Clock skew can invalidate JWTs — sync server time (NTP). |
-| NestJS + Fastify: UI doesn't load | Use `@nestjs/platform-express` or bridge the route via Express. |
-| `npm audit` reports vulnerabilities after install | Run `npm install` with the latest published version — the package pins safe dependency ranges via `overrides` in `package.json`. |
+
+| Symptom                                               | Likely cause / fix                                                                                                               |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `Missing required environment variables` at startup   | Set `LOG_JWT_SECRET` and `LOG_PASSWORD_HASH`, or set `LOG_AUTH_ENABLED=false` for local dev.                                     |
+| `LOG_JWT_SECRET must be at least 32 characters long.` | Generate a longer random secret.                                                                                                 |
+| Logout button visible when `LOG_AUTH_ENABLED=false`   | Upgrade to the latest version — older builds showed auth UI unconditionally; it is now hidden when auth is disabled.             |
+| Logging in succeeds but the page redirects to login   | Cookie blocked. In production, ensure HTTPS so the `secure` cookie flag works; behind a proxy, set `app.set('trust proxy', 1)`.  |
+| Memory mode shows no logs after restart               | Expected — memory mode is non-persistent. Switch to file mode.                                                                   |
+| File mode shows no logs                               | Confirm the file exists, is readable, and contains one JSON object per line. Check `meta._timestampParseFailed` on rows.         |
+| Daily glob shows no logs                              | Ensure filenames contain `YYYY-MM-DD` and fall within `LOG_FILE_DAYS`.                                                           |
+| 401 on every request after deploy                     | Clock skew can invalidate JWTs — sync server time (NTP).                                                                         |
+| NestJS + Fastify: UI doesn't load                     | Use `@nestjs/platform-express` or bridge the route via Express.                                                                  |
+| `npm audit` reports vulnerabilities after install     | Run `npm install` with the latest published version — the package pins safe dependency ranges via `overrides` in `package.json`. |
+
 
 ---
 
@@ -620,3 +641,4 @@ Pass `meta._timestamp` (ISO string) to override the ingestion time. Useful when 
 - **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 - **Security policy:** [SECURITY.md](./SECURITY.md)
 - **License:** MIT — see [LICENSE](./LICENSE).
+
