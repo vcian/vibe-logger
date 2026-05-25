@@ -2,12 +2,13 @@ name: Publish to npm
 
 on:
   push:
+    branches: [main]
     tags:
       - "v*.*.*"
   workflow_dispatch:
     inputs:
       release_type:
-        description: "Version bump type"
+        description: "Version bump type (manual release)"
         required: true
         default: "patch"
         type: choice
@@ -17,8 +18,70 @@ on:
           - major
 
 jobs:
+  detect:
+    name: Detect publishable change
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.decide.outputs.should_publish }}
+      version: ${{ steps.decide.outputs.version }}
+      tag: ${{ steps.decide.outputs.tag }}
+      needs_tag: ${{ steps.decide.outputs.needs_tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Decide whether to publish
+        id: decide
+        shell: bash
+        run: |
+          CURRENT="$(node -p "require('./package.json').version")"
+          TAG="v${CURRENT}"
+          SHOULD_PUBLISH="false"
+          NEEDS_TAG="false"
+
+          case "${{ github.event_name }}" in
+            push)
+              if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+                echo "Trigger: tag push (${GITHUB_REF_NAME})"
+                if [[ "v${CURRENT}" != "${GITHUB_REF_NAME}" ]]; then
+                  echo "::error::Tag (${GITHUB_REF_NAME}) does not match package.json version (v${CURRENT})."
+                  exit 1
+                fi
+                SHOULD_PUBLISH="true"
+                TAG="${GITHUB_REF_NAME}"
+              else
+                echo "Trigger: push to main"
+                PREVIOUS="$(git show HEAD~1:package.json 2>/dev/null | node -e "try { console.log(JSON.parse(require('fs').readFileSync(0,'utf8')).version); } catch (e) { console.log(''); }")"
+                echo "Previous version: '${PREVIOUS}'"
+                echo "Current version:  '${CURRENT}'"
+                if [[ -n "${PREVIOUS}" && "${PREVIOUS}" != "${CURRENT}" ]]; then
+                  SHOULD_PUBLISH="true"
+                  NEEDS_TAG="true"
+                else
+                  echo "Version unchanged; skipping publish."
+                fi
+              fi
+              ;;
+            workflow_dispatch)
+              echo "Trigger: manual dispatch"
+              SHOULD_PUBLISH="true"
+              ;;
+          esac
+
+          {
+            echo "should_publish=${SHOULD_PUBLISH}"
+            echo "version=${CURRENT}"
+            echo "tag=${TAG}"
+            echo "needs_tag=${NEEDS_TAG}"
+          } >> "$GITHUB_OUTPUT"
+
   publish:
     name: Build, test, and publish
+    needs: detect
+    if: needs.detect.outputs.should_publish == 'true'
     runs-on: ubuntu-latest
 
     permissions:
@@ -40,7 +103,6 @@ jobs:
           cache: npm
 
       - name: Configure git identity
-        if: github.event_name == 'workflow_dispatch'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -60,43 +122,38 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Bump version (manual dispatch)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Bump version (manual dispatch only)
         id: bump
-        run: |
-          NEW_VERSION=$(npm version ${{ inputs.release_type }} -m "chore(release): %s")
-          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Bumped to ${NEW_VERSION}"
-
-      - name: Push version commit and tag
         if: github.event_name == 'workflow_dispatch'
-        run: |
-          git push --follow-tags origin HEAD:${{ github.ref_name }}
-
-      - name: Verify tag matches package.json version (tag push only)
-        if: github.event_name == 'push'
         shell: bash
         run: |
-          PKG_VERSION="v$(node -p "require('./package.json').version")"
-          TAG_VERSION="${GITHUB_REF_NAME}"
-          echo "package.json version: $PKG_VERSION"
-          echo "git tag version:      $TAG_VERSION"
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::Tag ($TAG_VERSION) does not match package.json version ($PKG_VERSION)."
-            exit 1
+          NEW_TAG=$(npm version ${{ inputs.release_type }} -m "chore(release): %s")
+          NEW_VERSION="${NEW_TAG#v}"
+          git push --follow-tags origin HEAD:${{ github.ref_name }}
+          echo "tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag (auto-detected version bump)
+        if: github.event_name == 'push' && needs.detect.outputs.needs_tag == 'true'
+        shell: bash
+        run: |
+          TAG="${{ needs.detect.outputs.tag }}"
+          if git rev-parse "${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists; reusing it."
+          else
+            git tag -a "${TAG}" -m "Release ${TAG}"
+            git push origin "${TAG}"
           fi
 
-      - name: Resolve release tag
-        id: resolve_tag
+      - name: Resolve final tag
+        id: final
         shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ steps.bump.outputs.new_version }}"
+            echo "tag=${{ steps.bump.outputs.tag }}" >> "$GITHUB_OUTPUT"
           else
-            TAG="${GITHUB_REF_NAME}"
+            echo "tag=${{ needs.detect.outputs.tag }}" >> "$GITHUB_OUTPUT"
           fi
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "Release tag: ${TAG}"
 
       - name: Publish to npm
         run: npm publish --provenance --access public
@@ -107,7 +164,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          name: ${{ steps.resolve_tag.outputs.tag }}
-          tag_name: ${{ steps.resolve_tag.outputs.tag }}
+          name: ${{ steps.final.outputs.tag }}
+          tag_name: ${{ steps.final.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
