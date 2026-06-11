@@ -6,6 +6,21 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-11
+
+### Changed
+- Set the `author` field to ViitorCloud Technologies Pvt. Ltd. (name, support email, and `viitorcloud.com` URL) in place of the bare `vcian` handle.
+- Provenance is now passed as a CI flag (`npm publish --provenance`) instead of `publishConfig.provenance`, fixing the publish workflow.
+
+### Added
+- Discovery keywords: `log-viewer-ui`, `winston-dashboard`, `pino-dashboard`.
+
+### Documentation
+- Restructured the README hero: removed the `<details>` wrapper that hid the tagline on npm and GitHub, and reordered to badges → one-liner → screenshots → highlights → quick start.
+- Added dashboard screenshots (login, overview, quality insights, log table) under `docs/`.
+- Added a comparison table (vibe-logger vs Errsole vs log.io / frontail).
+- Added an "About ViitorCloud" footer and a one-line maintainer credit.
+
 ## [1.0.1] - 2026-05-25
 
 ### Security
