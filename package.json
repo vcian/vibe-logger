@@ -1,6 +1,6 @@
 {
   "name": "@vcian/vibe-logger",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Drop-in log viewer UI and dashboard for Node.js, Express, and NestJS — search, filter, date-range queries, time-series chart, CSV export, JWT auth, and pluggable memory/file storage for Winston/Pino-style JSON logs.",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
