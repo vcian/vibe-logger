@@ -1,17 +1,73 @@
 # vibe-logger
 
-<details>
-<summary>A drop-in log viewer UI for Node.js (Express and NestJS) — search, filter, date range, time-series chart, CSV export, auth, and pluggable memory/file storage.</summary>
-</details>
-
-**Repository:** [github.com/vcian/vibe-logger](https://github.com/vcian/vibe-logger)
-
 [![CI](https://github.com/vcian/vibe-logger/actions/workflows/ci.yml/badge.svg)](https://github.com/vcian/vibe-logger/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@vcian/vibe-logger)](https://www.npmjs.com/package/@vcian/vibe-logger)
 [![GitHub stars](https://img.shields.io/github/stars/vcian/vibe-logger?style=social)](https://github.com/vcian/vibe-logger)
 [![license](https://img.shields.io/npm/l/@vcian/vibe-logger)](https://github.com/vcian/vibe-logger/blob/main/LICENSE)
 [![node](https://img.shields.io/node/v/@vcian/vibe-logger)](https://www.npmjs.com/package/@vcian/vibe-logger)
 [![downloads](https://img.shields.io/npm/dm/@vcian/vibe-logger)](https://www.npmjs.com/package/@vcian/vibe-logger)
+
+**A drop-in log viewer UI & dashboard for Node.js (Express and NestJS)** — search, filter, date-range queries, a time-series volume chart, CSV export, JWT auth, and pluggable memory/file storage for your Winston/Pino-style JSON logs. Self-hosted, zero infrastructure.
+
+### Screenshots
+
+**Secure sign-in** — JWT auth with brute-force lockout.
+
+![vibe-logger login screen](docs/login.png)
+
+**Dashboard** — metric cards plus a clickable, time-series log-volume chart by level.
+
+![vibe-logger dashboard with metric cards and log-volume chart](docs/dashboard-overview.png)
+
+**Quality insights** — error/warn rates, top noisy sources, recurring errors, and spike hours.
+
+![vibe-logger quality insights panel](docs/quality-insights.png)
+
+**Searchable log table** — paginated, with expandable rows for multi-line messages and metadata.
+
+![vibe-logger paginated log table](docs/log-table.png)
+
+**Why vibe-logger?**
+
+- **Zero infra** — one Express middleware; no separate log server, database, or agent to run.
+- **Reads what you already write** — point it at your existing Winston/Pino JSON log files, or capture logs in-process.
+- **Insight, not just tailing** — time-series chart, error/warn rates, noisy-source and spike detection, plus search, filters, and CSV export.
+
+Built by the engineering team at [ViitorCloud Technologies](https://viitorcloud.com/?utm_source=github&utm_medium=readme&utm_campaign=vibe-logger), who use it in production on client projects.
+
+**Repository:** [github.com/vcian/vibe-logger](https://github.com/vcian/vibe-logger)
+
+## Quick start
+
+```bash
+npm install @vcian/vibe-logger
+```
+
+```ts
+import 'dotenv/config';
+import express from 'express';
+import { createLoggerUI } from '@vcian/vibe-logger';
+
+const app = express();
+const logger = createLoggerUI({ path: '/logs', storageMode: 'memory', interceptConsole: true });
+
+app.use(logger.middleware());
+app.listen(3000, () => logger.info('Listening on http://localhost:3000/logs'));
+```
+
+Then open `http://localhost:3000/logs` and sign in. Full setup — auth, NestJS, and file mode — is documented below.
+
+## How is this different from Errsole, log.io, or frontail?
+
+> **⚠️ Maintainers:** verify every cell in this table against the current behaviour of each tool **before** publishing. A wrong claim in a comparison table is the fastest route to a hostile comment thread.
+
+| | vibe-logger | Errsole | log.io / frontail |
+|---|---|---|---|
+| Setup | One middleware, zero infra | Logger + storage backend | Separate server process |
+| Reads existing Winston/Pino files | ✅ | Own logger required | Tails raw text |
+| Charts & insights | ✅ time-series, error rates, spike detection | ✅ | ❌ |
+| Auth built in | ✅ JWT + lockout | ✅ | ❌ |
+| Works inside NestJS | ✅ | Partial | ❌ |
 
 ---
 
@@ -641,4 +697,17 @@ Pass `meta._timestamp` (ISO string) to override the ingestion time. Useful when 
 - **Changelog:** [CHANGELOG.md](./CHANGELOG.md)
 - **Security policy:** [SECURITY.md](./SECURITY.md)
 - **License:** MIT — see [LICENSE](./LICENSE).
+
+---
+
+## About ViitorCloud
+
+**[ViitorCloud Technologies](https://viitorcloud.com/?utm_source=github&utm_medium=readme&utm_campaign=vibe-logger)** is an AI-first technology services company building AI/ML, data, and modern web solutions for clients across North America, Europe, and APAC. Our engineering team builds and maintains this package — and uses it in production on client projects.
+
+- 🌐 [viitorcloud.com](https://viitorcloud.com/?utm_source=github&utm_medium=readme&utm_campaign=vibe-logger)
+- 🧰 [More open source from ViitorCloud](https://github.com/vcian)
+- 💬 Questions or commercial support: support@viitorcloud.com
+- 💼 [Work with our team](https://viitorcloud.com/contact-us?utm_source=github&utm_medium=readme&utm_campaign=vibe-logger)
+
+If this package saves you time, **⭐ star the repo** — it's the main way other developers discover it.
 
